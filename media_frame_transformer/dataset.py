@@ -16,7 +16,7 @@ def get_frame_index(frame_float: float):
     return int(frame_float) - 1
 
 
-def get_kfold(issues: List[str], task: str, k: int) -> List[Dict[str, Dataset]]:
+def load_kfold(issues: List[str], task: str, k: int) -> List[Dict[str, Dataset]]:
     assert task in ["primary_frame"]  # todo support more transforms
     if task == "primary_frame":
         label_transform = get_frame_index
@@ -48,11 +48,11 @@ def get_kfold(issues: List[str], task: str, k: int) -> List[Dict[str, Dataset]]:
     results = [
         {
             "train": TensorDataset(
-                torch.FloatTensor(fold2xs[ki]["train"]),
+                torch.LongTensor(fold2xs[ki]["train"]),
                 torch.LongTensor(fold2ys[ki]["train"]),
             ),
             "valid": TensorDataset(
-                torch.FloatTensor(fold2xs[ki]["valid"]),
+                torch.LongTensor(fold2xs[ki]["valid"]),
                 torch.LongTensor(fold2ys[ki]["valid"]),
             ),
         }
@@ -62,7 +62,7 @@ def get_kfold(issues: List[str], task: str, k: int) -> List[Dict[str, Dataset]]:
 
 
 if __name__ == "__main__":
-    kfold_datasets = get_kfold(ISSUES, "primary_frame", 8)
+    kfold_datasets = load_kfold(ISSUES, "primary_frame", 8)
 
     for ki, fold in enumerate(kfold_datasets):
         trainloader = DataLoader(fold["train"], batch_size=1)
@@ -71,61 +71,64 @@ if __name__ == "__main__":
         # for x, y in trainloader:
         #     print(x.shape, y.shape)
 
-# class PrimaryFrameDataset(Dataset):
-#     def __init__(
-#         self,
-#         issues: List[str],
-#         split: Literal["train", "test"],
-#         quiet: bool = False,
-#     ) -> None:
-#         super().__init__()
-#         assert split in ["train", "test"]
 
-#         self.all_data = []
-#         for issue in tqdm(issues, desc="PrimaryFrameDataset", disable=quiet):
-#             assert issue in ISSUES
+class PrimaryFrameDataset(Dataset):
+    def __init__(
+        self,
+        issues: List[str],
+        split: Literal["train", "test"],
+        quiet: bool = False,
+    ) -> None:
+        super().__init__()
+        assert split in ["train", "test"]
 
-#             raw_data = load_json(join(FRAMING_DATA_DIR, f"{issue}_labeled.json"))
-#             token_data = load_json(join(FRAMING_DATA_DIR, f"{issue}_tokenized.json"))
-#             testset_ids = set(
-#                 load_json(join(FRAMING_DATA_DIR, f"{issue}_test_sets.json"))[
-#                     "primary_frame"
-#                 ]
-#             )
+        self.all_data = []
+        for issue in tqdm(issues, desc="PrimaryFrameDataset", disable=quiet):
+            assert issue in ISSUES
 
-#             for k, v in tqdm(raw_data.items(), disable=True):
-#                 if split == "train" and k in testset_ids:
-#                     continue
-#                 if split == "test" and k not in testset_ids:
-#                     continue
-#                 if (
-#                     v["irrelevant"] == 1
-#                     or v["primary_frame"] == None
-#                     or v["primary_frame"] == 0
-#                 ):
-#                     continue
-#                 if k not in token_data:
-#                     continue
+            raw_data = load_json(join(FRAMING_DATA_DIR, f"{issue}_labeled.json"))
+            token_data = load_json(join(FRAMING_DATA_DIR, f"{issue}_tokenized.json"))
+            testset_ids = set(
+                load_json(join(FRAMING_DATA_DIR, f"{issue}_test_sets.json"))[
+                    "primary_frame"
+                ]
+            )
 
-#                 self.all_data.append(
-#                     {
-#                         "tokens": token_data[k],
-#                         "label": PrimaryFrameDataset.get_frame_index(
-#                             v["primary_frame"]
-#                         ),
-#                         "text": v["text"],
-#                     }
-#                 )
+            for k, v in tqdm(raw_data.items(), disable=True):
+                if split == "train" and k in testset_ids:
+                    continue
+                if split == "test" and k not in testset_ids:
+                    continue
+                if (
+                    v["irrelevant"] == 1
+                    or v["primary_frame"] == None
+                    or v["primary_frame"] == 0
+                ):
+                    continue
+                if k not in token_data:
+                    continue
 
-#     def __len__(self) -> int:
-#         return len(self.all_data)
+                self.all_data.append(
+                    {
+                        "tokens": token_data[k],
+                        "label": PrimaryFrameDataset.get_frame_index(
+                            v["primary_frame"]
+                        ),
+                        "text": v["text"],
+                    }
+                )
 
-#     def __getitem__(self, idx: int):
-#         sample = self.all_data[idx]
-#         return {
-#             "x": np.array(sample["tokens"]),
-#             "y": sample["label"],
-#         }
+    def __len__(self) -> int:
+        return len(self.all_data)
 
-#     @staticmethod
-#
+    def __getitem__(self, idx: int):
+        sample = self.all_data[idx]
+        return {
+            "x": np.array(sample["tokens"]),
+            "y": sample["label"],
+        }
+
+    @staticmethod
+    def get_frame_index(frame_float: float):
+        assert frame_float != 0
+        return int(frame_float) - 1

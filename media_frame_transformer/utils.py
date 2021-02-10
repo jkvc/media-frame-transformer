@@ -6,8 +6,11 @@ from os import mkdir
 from os.path import join
 from typing import Iterable, List, Tuple
 
+import torch
 from genericpath import exists
 from tqdm import tqdm
+
+DEVICE = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
 
 def read_txt_as_str_list(filepath: str) -> List[str]:
