@@ -12,10 +12,10 @@ from transformers.file_utils import TF_TOKEN_CLASSIFICATION_SAMPLE
 from media_frame_transformer.dataset import load_kfold
 from media_frame_transformer.utils import DEVICE, mkdir_overwrite
 
-EXPERIMENT_NAME = "1.1-e"
+EXPERIMENT_NAME = "1.1-f"
 
 KFOLD = 8
-N_EPOCH = 12
+N_EPOCH = 8
 BATCHSIZE = 30
 N_DATALOADER_WORKER = 2
 
