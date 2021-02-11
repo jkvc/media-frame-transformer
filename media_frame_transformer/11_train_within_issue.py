@@ -16,7 +16,7 @@ if __name__ == "__main__":
     save_root = join(MODELS_DIR, EXPERIMENT_NAME)
     assert not exists(
         save_root
-    ), f"{save_root} already exists, remove existing or choose another experment name"
+    ), f"{save_root} already exists, remove existing or choose another experiment name"
     mkdir_overwrite(save_root)
 
     for issue in ISSUES:
