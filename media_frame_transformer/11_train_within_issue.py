@@ -3,7 +3,7 @@ from os.path import exists, join
 from config import ISSUES, MODELS_DIR
 
 from media_frame_transformer.dataset import load_kfold
-from media_frame_transformer.training import train
+from media_frame_transformer.learning import train
 from media_frame_transformer.utils import mkdir_overwrite
 
 EXPERIMENT_NAME = "1.1-f"
