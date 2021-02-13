@@ -103,45 +103,50 @@ def train(
     writer.close()
 
 
-VALID_BATCHSIZE = 170
+VALID_BATCHSIZE = 300
 
 
 def valid(
-    train_dataset,
-    valid_dataset,
     model_path,
+    valid_dataset,
+    train_dataset=None,
     batchsize=VALID_BATCHSIZE,
     n_dataloader_worker=N_DATALOADER_WORKER,
 ):
 
-    train_loader = DataLoader(
-        train_dataset,
-        batch_size=batchsize,
-        shuffle=True,
-        num_workers=n_dataloader_worker,
-    )
     valid_loader = DataLoader(
         valid_dataset,
         batch_size=batchsize,
         shuffle=True,
         num_workers=n_dataloader_worker,
     )
+    train_loader = (
+        DataLoader(
+            train_dataset,
+            batch_size=batchsize,
+            shuffle=True,
+            num_workers=n_dataloader_worker,
+        )
+        if train_dataset
+        else None
+    )
     model = RobertaForSequenceClassification.from_pretrained(
         "roberta-base",
+        state_dict=torch.load(model_path),
         num_labels=15,
         output_attentions=False,
         output_hidden_states=False,
     )
-    model.load_state_dict(torch.load(model_path))
     model = model.to(DEVICE)
+
+    name0loaders = [("valid", valid_loader)]
+    if train_loader:
+        name0loaders.append(("train", train_loader))
 
     metrics = {}
     with torch.no_grad():
         model.eval()
-        for splitname, dataloader in [
-            # ("train", train_loader),
-            ("valid", valid_loader),
-        ]:
+        for splitname, dataloader in name0loaders:
             total_n_samples = 0
             total_n_correct = 0
             total_loss = 0
@@ -161,7 +166,9 @@ def valid(
     return metrics
 
 
-def get_kfold_metrics(issues, task, kfold, kfold_models_root):
+def get_kfold_metrics(
+    issues, task, kfold, kfold_models_root, valid_on_train_also=False
+):
     kfold_datasets = load_kfold(issues, task, kfold)
     kfold_model_paths = [
         join(kfold_models_root, f"fold_{ki}", "best.pth") for ki in range(kfold)
@@ -170,9 +177,9 @@ def get_kfold_metrics(issues, task, kfold, kfold_models_root):
         assert exists(path)
     issue_metrics = defaultdict(list)
     for ki, (datasets, model_path) in enumerate(zip(kfold_datasets, kfold_model_paths)):
-        train_dataset = datasets["train"]
         valid_dataset = datasets["valid"]
-        metrics = valid(train_dataset, valid_dataset, model_path)
+        train_dataset = datasets["train"] if valid_on_train_also else None
+        metrics = valid(model_path, valid_dataset, train_dataset)
         for k, v in metrics.items():
             issue_metrics[k].append(v)
 

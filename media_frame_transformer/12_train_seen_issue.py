@@ -9,7 +9,7 @@ from media_frame_transformer.utils import mkdir_overwrite
 EXPERIMENT_NAME = "1.2-d"
 
 KFOLD = 8
-N_EPOCH = 10
+N_EPOCH = 8
 
 if __name__ == "__main__":
     save_root = join(MODELS_DIR, EXPERIMENT_NAME)
