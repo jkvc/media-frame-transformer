@@ -6,7 +6,7 @@ from media_frame_transformer.dataset import load_kfold
 from media_frame_transformer.learning import train
 from media_frame_transformer.utils import mkdir_overwrite
 
-EXPERIMENT_NAME = "1.2-c"
+EXPERIMENT_NAME = "1.2-d"
 
 KFOLD = 8
 N_EPOCH = 10
