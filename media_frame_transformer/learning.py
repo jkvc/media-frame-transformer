@@ -14,7 +14,7 @@ from media_frame_transformer.dataset import load_kfold
 from media_frame_transformer.utils import DEVICE
 
 N_DATALOADER_WORKER = 2
-TRAIN_BATCHSIZE = 30
+TRAIN_BATCHSIZE = 25
 
 
 def train(
