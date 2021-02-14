@@ -8,7 +8,7 @@ from media_frame_transformer.dataset import load_kfold
 from media_frame_transformer.learning import train
 from media_frame_transformer.utils import mkdir_overwrite, write_str_list_as_txt
 
-EXPERIMENT_NAME = "1.1-j"
+EXPERIMENT_NAME = "1.1-h"
 ARCH = "roberta_highdrop_half"
 
 KFOLD = 8

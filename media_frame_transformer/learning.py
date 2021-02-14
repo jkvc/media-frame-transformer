@@ -13,7 +13,7 @@ from transformers import AdamW, RobertaForSequenceClassification
 from media_frame_transformer.dataset import load_kfold
 from media_frame_transformer.utils import DEVICE
 
-N_DATALOADER_WORKER = 2
+N_DATALOADER_WORKER = 4
 TRAIN_BATCHSIZE = 25
 
 
@@ -69,8 +69,8 @@ def train(
             writer.add_scalar("train acc", train_acc, step_idx)
 
         # valid
+        model.eval()
         with torch.no_grad():
-            model.eval()
             total_n_samples = 0
             total_n_correct = 0
             total_loss = 0

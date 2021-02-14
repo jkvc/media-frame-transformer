@@ -44,16 +44,20 @@ def roberta_highdrop():
 
 @register_model("roberta_highdrop_half")
 def roberta_highdrop_half():
-    return _freeze_roberta_top_half(roberta_highdrop())
+    return _freeze_roberta_top_n_layers(roberta_highdrop(), 6)
 
 
-def _freeze_roberta_top_half(model):
+@register_model("roberta_highdrop_third")
+def roberta_highdrop_third():
+    return _freeze_roberta_top_n_layers(roberta_highdrop(), 8)
+
+
+def _freeze_roberta_top_n_layers(model, n):
     # pretrained roberta = embeddings -> encoder.laysers -> classfier
     for param in model.roberta.embeddings.parameters():
         param.requires_grad = False
-    num_layer = len(model.roberta.encoder.layer)
     for i, module in enumerate(model.roberta.encoder.layer):
-        if i < num_layer // 2:
+        if i < n:
             for param in module.parameters():
                 param.requires_grad = False
     return model
