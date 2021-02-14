@@ -28,7 +28,7 @@ def roberta_base():
 
 @register_model("roberta_base_half")
 def roberta_base_half():
-    return _freeze_roberta_top_half(roberta_base())
+    return _freeze_roberta_top_n_layers(roberta_base(), 6)
 
 
 @register_model("roberta_highdrop")
