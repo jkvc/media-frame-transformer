@@ -2,15 +2,17 @@ from os.path import exists, join
 
 from config import ISSUES, MODELS_DIR
 
+from media_frame_transformer import models
 from media_frame_transformer.dataset import load_kfold
 from media_frame_transformer.learning import train
 from media_frame_transformer.utils import mkdir_overwrite
 
-EXPERIMENT_NAME = "1.1-g"
+EXPERIMENT_NAME = "1.1-i"
+ARCH = "roberta_highdrop_half"
 
 KFOLD = 8
-N_EPOCH = 8
-
+N_EPOCH = 15
+BATCHSIZE = 50
 
 if __name__ == "__main__":
     save_root = join(MODELS_DIR, EXPERIMENT_NAME)
@@ -31,4 +33,6 @@ if __name__ == "__main__":
 
             train_dataset = datasets["train"]
             valid_dataset = datasets["valid"]
-            train(train_dataset, valid_dataset, save_fold, N_EPOCH)
+
+            model = models.get_model(ARCH)
+            train(model, train_dataset, valid_dataset, save_fold, N_EPOCH, BATCHSIZE)

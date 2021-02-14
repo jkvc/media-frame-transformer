@@ -18,6 +18,7 @@ TRAIN_BATCHSIZE = 25
 
 
 def train(
+    model,
     train_dataset,
     valid_dataset,
     logdir,
@@ -39,18 +40,12 @@ def train(
         num_workers=n_dataloader_worker,
     )
 
-    model = RobertaForSequenceClassification.from_pretrained(
-        "roberta-base",
-        num_labels=15,
-        output_attentions=False,
-        output_hidden_states=False,
-    )
     model = model.to(DEVICE)
     optimizer = AdamW(model.parameters(), lr=1e-5)
 
     writer = SummaryWriter(logdir)
     lowest_valid_loss = float("inf")
-    best_model_checkpoint_path = join(logdir, "best.pth")
+    # best_model_checkpoint_path = join(logdir, "best.pth")
 
     for e in range(n_epoch):
         # train
@@ -61,13 +56,13 @@ def train(
 
             optimizer.zero_grad()
             outputs = model(xs)
-            loss = F.cross_entropy(outputs.logits, ys)
+            loss = F.cross_entropy(outputs.logits, ys, reduction="mean")
             loss.backward()
             optimizer.step()
 
             # tensorboard
             step_idx = e * len(train_loader) + i
-            train_loss = loss.item() / ys.shape[0]
+            train_loss = loss.item()
             writer.add_scalar("train loss", train_loss, step_idx)
             is_correct = torch.argmax(outputs.logits, dim=-1) == ys
             train_acc = is_correct.sum() / ys.shape[0]
@@ -83,22 +78,27 @@ def train(
                 xs, ys = batch
                 xs, ys = xs.to(DEVICE), ys.to(DEVICE)
                 outputs = model(xs)
-                loss = F.cross_entropy(outputs.logits, ys)
+                loss = F.cross_entropy(outputs.logits, ys, reduction="sum")
                 total_loss += loss
                 is_correct = torch.argmax(outputs.logits, dim=-1) == ys
                 total_n_correct += is_correct.sum()
                 total_n_samples += ys.shape[0]
+
             valid_acc = total_n_correct / total_n_samples
             writer.add_scalar("valid acc", valid_acc, e)
             valid_loss = total_loss / total_n_samples
+            writer.add_scalar("valid loss", valid_loss.item(), e)
+
             if valid_loss < lowest_valid_loss:
                 print(
                     ">> new best valid loss",
-                    round(valid_loss.item(), 5),
+                    round(valid_loss.item(), 4),
+                    "valid acc",
+                    round(valid_acc.item(), 4),
                     "save checkpoint",
                 )
                 lowest_valid_loss = valid_loss
-                torch.save(model.state_dict(), best_model_checkpoint_path)
+                model.save_pretrained(logdir)
 
     writer.close()
 
@@ -154,7 +154,7 @@ def valid(
                 xs, ys = batch
                 xs, ys = xs.to(DEVICE), ys.to(DEVICE)
                 outputs = model(xs)
-                loss = F.cross_entropy(outputs.logits, ys)
+                loss = F.cross_entropy(outputs.logits, ys, reduction="sum")
                 total_loss += loss
                 is_correct = torch.argmax(outputs.logits, dim=-1) == ys
                 total_n_correct += is_correct.sum()
