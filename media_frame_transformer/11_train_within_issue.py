@@ -1,8 +1,6 @@
 from os import mkdir, write
 from os.path import exists, join
 
-import torch
-import torch.nn as nn
 from config import ISSUES, MODELS_DIR
 
 from media_frame_transformer import models
@@ -15,7 +13,7 @@ ARCH = "roberta_base_half"
 
 KFOLD = 8
 N_EPOCH = 15
-BATCHSIZE = 120
+BATCHSIZE = 50
 
 if __name__ == "__main__":
     save_root = join(MODELS_DIR, EXPERIMENT_NAME)
@@ -42,9 +40,6 @@ if __name__ == "__main__":
             valid_dataset = datasets["valid"]
 
             model = models.get_model(ARCH)
-            if torch.cuda.device_count() > 1:
-                model = nn.DataParallel(model)
-
             train(
                 model,
                 train_dataset,
