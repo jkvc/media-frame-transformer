@@ -1,4 +1,7 @@
-from transformers import RobertaForSequenceClassification
+from transformers import (
+    DistilBertForSequenceClassification,
+    RobertaForSequenceClassification,
+)
 
 _MODELS = {}
 
@@ -16,6 +19,16 @@ def register_model(arch: str):
     return _register
 
 
+@register_model("distilbert_base")
+def distilbert_base():
+    return DistilBertForSequenceClassification.from_pretrained(
+        "distilbert-base-uncased",
+        num_labels=15,
+        output_attentions=False,
+        output_hidden_states=False,
+    )
+
+
 @register_model("roberta_base")
 def roberta_base():
     return RobertaForSequenceClassification.from_pretrained(
@@ -26,9 +39,15 @@ def roberta_base():
     )
 
 
-@register_model("roberta_base_half")
-def roberta_base_half():
-    return _freeze_roberta_top_n_layers(roberta_base(), 6)
+@register_model("roberta_meddrop")
+def roberta_meddrop():
+    return RobertaForSequenceClassification.from_pretrained(
+        "roberta-base",
+        num_labels=15,
+        output_attentions=False,
+        output_hidden_states=False,
+        hidden_dropout_prob=0.15,
+    )
 
 
 @register_model("roberta_highdrop")
@@ -42,14 +61,19 @@ def roberta_highdrop():
     )
 
 
+@register_model("roberta_base_half")
+def roberta_base_half():
+    return _freeze_roberta_top_n_layers(roberta_base(), 6)
+
+
+@register_model("roberta_meddrop_half")
+def roberta_meddrop_half():
+    return _freeze_roberta_top_n_layers(roberta_meddrop(), 6)
+
+
 @register_model("roberta_highdrop_half")
 def roberta_highdrop_half():
     return _freeze_roberta_top_n_layers(roberta_highdrop(), 6)
-
-
-@register_model("roberta_highdrop_third")
-def roberta_highdrop_third():
-    return _freeze_roberta_top_n_layers(roberta_highdrop(), 8)
 
 
 def _freeze_roberta_top_n_layers(model, n):
