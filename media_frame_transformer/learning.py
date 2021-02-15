@@ -8,7 +8,14 @@ from torch.nn import functional as F
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
-from transformers import AdamW, RobertaForSequenceClassification
+from transformers import (
+    AdamW,
+    AutoConfig,
+    AutoModel,
+    AutoModelForSequenceClassification,
+    PreTrainedModel,
+    RobertaForSequenceClassification,
+)
 
 from media_frame_transformer.dataset import load_kfold
 from media_frame_transformer.utils import DEVICE
@@ -103,11 +110,11 @@ def train(
     writer.close()
 
 
-VALID_BATCHSIZE = 300
+VALID_BATCHSIZE = 100
 
 
 def valid(
-    model_path,
+    model,
     valid_dataset,
     train_dataset=None,
     batchsize=VALID_BATCHSIZE,
@@ -129,13 +136,6 @@ def valid(
         )
         if train_dataset
         else None
-    )
-    model = RobertaForSequenceClassification.from_pretrained(
-        "roberta-base",
-        state_dict=torch.load(model_path),
-        num_labels=15,
-        output_attentions=False,
-        output_hidden_states=False,
     )
     model = model.to(DEVICE)
 
@@ -160,8 +160,16 @@ def valid(
                 total_n_correct += is_correct.sum()
                 total_n_samples += ys.shape[0]
 
-            metrics[f"{splitname}_acc"] = (total_n_correct / total_n_samples).item()
-            metrics[f"{splitname}_loss"] = (total_loss / total_n_samples).item()
+            valid_loss = (total_loss / total_n_samples).item()
+            valid_acc = (total_n_correct / total_n_samples).item()
+            print(
+                ">> valid loss",
+                round(valid_loss, 4),
+                "valid acc",
+                round(valid_acc, 4),
+            )
+            metrics[f"{splitname}_acc"] = valid_acc
+            metrics[f"{splitname}_loss"] = valid_loss
 
     return metrics
 
@@ -169,17 +177,21 @@ def valid(
 def get_kfold_metrics(
     issues, task, kfold, kfold_models_root, valid_on_train_also=False
 ):
-    kfold_datasets = load_kfold(issues, task, kfold)
-    kfold_model_paths = [
-        join(kfold_models_root, f"fold_{ki}", "best.pth") for ki in range(kfold)
-    ]
-    for path in kfold_model_paths:
-        assert exists(path)
+    for ki in range(kfold):
+        assert exists(join(kfold_models_root, f"fold_{ki}"))
+
     issue_metrics = defaultdict(list)
-    for ki, (datasets, model_path) in enumerate(zip(kfold_datasets, kfold_model_paths)):
+    kfold_datasets = load_kfold(issues, task, kfold)
+
+    for ki, datasets in enumerate(kfold_datasets):
         valid_dataset = datasets["valid"]
         train_dataset = datasets["train"] if valid_on_train_also else None
-        metrics = valid(model_path, valid_dataset, train_dataset)
+
+        model = AutoModelForSequenceClassification.from_pretrained(
+            join(kfold_models_root, f"fold_{ki}")
+        )
+
+        metrics = valid(model, valid_dataset, train_dataset)
         for k, v in metrics.items():
             issue_metrics[k].append(v)
 

@@ -10,12 +10,12 @@ from media_frame_transformer.dataset import load_kfold
 from media_frame_transformer.learning import train
 from media_frame_transformer.utils import mkdir_overwrite, write_str_list_as_txt
 
-EXPERIMENT_NAME = "1.2-e"
-ARCH = "roberta_highdrop_half"
+EXPERIMENT_NAME = "1.2-f"
+ARCH = "roberta_base_half"
 
 KFOLD = 8
 N_EPOCH = 15
-BATCHSIZE = 30
+BATCHSIZE = 50
 
 if __name__ == "__main__":
     save_root = join(MODELS_DIR, EXPERIMENT_NAME)
