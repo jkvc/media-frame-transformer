@@ -1,6 +1,8 @@
 from os import mkdir
 from os.path import exists, join
 
+import torch
+import torch.nn as nn
 from config import ISSUES, MODELS_DIR
 
 from media_frame_transformer import models
@@ -32,6 +34,9 @@ if __name__ == "__main__":
         valid_dataset = datasets["valid"]
 
         model = models.get_model(ARCH)
+        if torch.cuda.device_count() > 1:
+            model = nn.DataParallel(model)
+
         train(
             model,
             train_dataset,
