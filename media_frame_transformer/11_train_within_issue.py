@@ -4,11 +4,11 @@ from os.path import exists, join
 from config import ISSUES, MODELS_DIR
 
 from media_frame_transformer import models
-from media_frame_transformer.dataset import load_kfold
+from media_frame_transformer.dataset import get_kfold_primary_frames_datasets
 from media_frame_transformer.learning import train
 from media_frame_transformer.utils import mkdir_overwrite, write_str_list_as_txt
 
-EXPERIMENT_NAME = "1.1-ldistilbert"
+EXPERIMENT_NAME = "1.1.test"
 ARCH = "roberta_base_half"
 
 
@@ -27,7 +27,7 @@ if __name__ == "__main__":
         if not exists(save_issue_path):
             mkdir(save_issue_path)
 
-        kfold_datasets = load_kfold([issue], "primary_frame", KFOLD)
+        kfold_datasets = get_kfold_primary_frames_datasets([issue], KFOLD)
         for ki, datasets in enumerate(kfold_datasets):
 
             # skip done

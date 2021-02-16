@@ -1,26 +1,16 @@
 from collections import defaultdict
 from os.path import exists, join
 
-import pandas as pd
 import torch
-from config import ISSUES, MODELS_DIR
 from torch.nn import functional as F
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
-from transformers import (
-    AdamW,
-    AutoConfig,
-    AutoModel,
-    AutoModelForSequenceClassification,
-    PreTrainedModel,
-    RobertaForSequenceClassification,
-)
+from transformers import AdamW, AutoModelForSequenceClassification
 
-from media_frame_transformer.dataset import load_kfold
 from media_frame_transformer.utils import DEVICE
 
-N_DATALOADER_WORKER = 4
+N_DATALOADER_WORKER = 6
 TRAIN_BATCHSIZE = 25
 
 
@@ -58,7 +48,7 @@ def train(
         # train
         model.train()
         for i, batch in enumerate(tqdm(train_loader, desc=f"{e}, train")):
-            xs, ys = batch
+            xs, ys, _ = batch  # todo
             xs, ys = xs.to(DEVICE), ys.to(DEVICE)
 
             optimizer.zero_grad()
@@ -82,7 +72,7 @@ def train(
             total_n_correct = 0
             total_loss = 0
             for i, batch in enumerate(tqdm(valid_loader, desc=f"{e}, valid")):
-                xs, ys = batch
+                xs, ys, _ = batch
                 xs, ys = xs.to(DEVICE), ys.to(DEVICE)
                 outputs = model(xs)
                 loss = F.cross_entropy(outputs.logits, ys, reduction="sum")

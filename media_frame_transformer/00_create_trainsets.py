@@ -10,20 +10,20 @@ from media_frame_transformer.utils import load_json, save_json
 TOKENIZER = RobertaTokenizerFast.from_pretrained("roberta-base")
 
 
-def encode_data(data):
-    id2tokens = {}
-    for k, v in tqdm(data.items()):
+# def encode_data(data):
+#     id2tokens = {}
+#     for k, v in tqdm(data.items()):
 
-        # preprocess text
-        text = v["text"]
-        lines = text.split("\n\n")
-        lines = lines[3:]  # first 3 lines are id, "PRIMARY", title
-        text = "\n".join(lines)
-        tokens = TOKENIZER.encode(text, add_special_tokens=True, truncation=True)
-        assert len(tokens) <= 512
-        id2tokens[k] = tokens
+#         # preprocess text
+#         text = v["text"]
+#         lines = text.split("\n\n")
+#         lines = lines[3:]  # first 3 lines are id, "PRIMARY", title
+#         text = "\n".join(lines)
+#         tokens = TOKENIZER.encode(text, add_special_tokens=True, truncation=True)
+#         assert len(tokens) <= 512
+#         id2tokens[k] = tokens
 
-    return id2tokens
+#     return id2tokens
 
 
 if __name__ == "__main__":
@@ -32,12 +32,13 @@ if __name__ == "__main__":
     for issue in ISSUES:
         print(">>", issue)
         data = load_json(join(FRAMING_DATA_DIR, f"{issue}_labeled.json"))
+        ids = list(data.keys())
 
-        id2tokens = encode_data(data)
-        save_json(
-            id2tokens,
-            join(FRAMING_DATA_DIR, f"{issue}_encoded.json"),
-        )
+        # id2tokens = encode_data(data)
+        # save_json(
+        #     id2tokens,
+        #     join(FRAMING_DATA_DIR, f"{issue}_encoded.json"),
+        # )
 
         testsets = load_json(join(FRAMING_DATA_DIR, f"{issue}_test_sets.json"))
         testsets = {setname: set(ids) for setname, ids in testsets.items()}
@@ -45,7 +46,7 @@ if __name__ == "__main__":
         trainsets = {}
         # relevance train set: any sample not in test set relevance, and has tokenized
         trainsets["relevance"] = list(
-            {id for id in data if (id in id2tokens and id not in testsets["relevance"])}
+            {id for id in data if (id in ids and id not in testsets["relevance"])}
         )
 
         # primary frame trainset: any sample not in testset primary frame, and has tokenized, and has non null primary fram
@@ -54,7 +55,7 @@ if __name__ == "__main__":
                 id
                 for id, item in data.items()
                 if (
-                    id in id2tokens
+                    id in ids
                     and id not in testsets["primary_frame"]
                     and item["primary_frame"] != 0
                     and item["primary_frame"] != None
@@ -68,7 +69,7 @@ if __name__ == "__main__":
                 id
                 for id, item in data.items()
                 if (
-                    id in id2tokens
+                    id in ids
                     and id not in testsets["primary_tone"]
                     and item["primary_tone"] != 0
                     and item["primary_tone"] != None
@@ -79,7 +80,6 @@ if __name__ == "__main__":
 
         stat = {
             "raw": len(data),
-            "tokens": len(id2tokens),
         }
         stat.update(
             {f"train_{setname}": len(ids) for setname, ids in trainsets.items()}

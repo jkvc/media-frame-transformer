@@ -22,6 +22,7 @@ if __name__ == "__main__":
         to_save = {}
 
         for task, all_ids in trainsets.items():
+            all_ids = sorted(all_ids)
             random.shuffle(all_ids)
             numsamples = len(all_ids)
             chunksize = int(np.round(numsamples / k))

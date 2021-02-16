@@ -6,11 +6,11 @@ import torch.nn as nn
 from config import ISSUES, MODELS_DIR
 
 from media_frame_transformer import models
-from media_frame_transformer.dataset import load_kfold
+from media_frame_transformer.dataset import get_kfold_primary_frames_datasets
 from media_frame_transformer.learning import train
 from media_frame_transformer.utils import mkdir_overwrite, write_str_list_as_txt
 
-EXPERIMENT_NAME = "1.2.a.roberta_half"
+EXPERIMENT_NAME = "1.2.test"
 ARCH = "roberta_base_half"
 
 KFOLD = 8
@@ -22,7 +22,7 @@ if __name__ == "__main__":
     if not exists(save_root):
         mkdir(save_root)
 
-    kfold_datasets = load_kfold(ISSUES, "primary_frame", KFOLD)
+    kfold_datasets = get_kfold_primary_frames_datasets(ISSUES, KFOLD)
     for ki, datasets in enumerate(kfold_datasets):
         save_fold = join(save_root, f"fold_{ki}")
         if exists(join(save_fold, "_complete")):

@@ -36,17 +36,15 @@ if __name__ == "__main__":
                         continue
                     code = span["code"]
                     text_segment = text[start:end]
-                    encoded = TOKENIZER.encode(
-                        text, add_special_tokens=True, truncation=True
-                    )
                     labeled_span_data[articleid].append(
                         {
                             "text": text_segment,
                             "code": code,
-                            "encoded": encoded,
                         }
                     )
-        save_json(labeled_span_data, join(FRAMING_DATA_DIR, f"{issue}_spans.json"))
+        save_json(
+            labeled_span_data, join(FRAMING_DATA_DIR, f"{issue}_frame_spans.json")
+        )
 
         num_spans = sum(len(l) for l in labeled_span_data.values())
         stats[issue] = {
