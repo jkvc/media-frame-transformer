@@ -9,15 +9,11 @@ from media_frame_transformer.learning import train
 from media_frame_transformer.utils import mkdir_overwrite, write_str_list_as_txt
 
 EXPERIMENT_NAME = "1.1-ldistilbert"
-
-# ARCH = "roberta_base_half"
-# TOKENIZER_NAME = "roberta"
-ARCH = "distilbert_base"
-TOKENIZER_NAME = "distilbert"
+ARCH = "roberta_base_half"
 
 
 KFOLD = 8
-N_EPOCH = 12
+N_EPOCH = 10
 BATCHSIZE = 50
 
 if __name__ == "__main__":
@@ -31,7 +27,7 @@ if __name__ == "__main__":
         if not exists(save_issue_path):
             mkdir(save_issue_path)
 
-        kfold_datasets = load_kfold([issue], "primary_frame", KFOLD, TOKENIZER_NAME)
+        kfold_datasets = load_kfold([issue], "primary_frame", KFOLD)
         for ki, datasets in enumerate(kfold_datasets):
 
             # skip done

@@ -21,12 +21,13 @@ def register_model(arch: str):
 
 @register_model("distilbert_base")
 def distilbert_base():
-    return DistilBertForSequenceClassification.from_pretrained(
+    model = DistilBertForSequenceClassification.from_pretrained(
         "distilbert-base-uncased",
         num_labels=15,
         output_attentions=False,
         output_hidden_states=False,
     )
+    return model
 
 
 @register_model("roberta_base")

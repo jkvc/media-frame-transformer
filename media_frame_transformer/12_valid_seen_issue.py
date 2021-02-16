@@ -7,7 +7,7 @@ from config import ISSUES, MODELS_DIR
 from media_frame_transformer.dataset import load_kfold
 from media_frame_transformer.learning import get_kfold_metrics, valid
 
-EXPERIMENT_NAME = "1.2-e"
+EXPERIMENT_NAME = "1.2.a.roberta_half"
 KFOLD = 8
 
 

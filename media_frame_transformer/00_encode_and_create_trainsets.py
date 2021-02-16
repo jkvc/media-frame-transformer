@@ -3,24 +3,14 @@ from os.path import join
 import pandas as pd
 from config import FRAMING_DATA_DIR, ISSUES
 from tqdm import tqdm
-from transformers import (
-    AlbertTokenizer,
-    DistilBertTokenizerFast,
-    PreTrainedTokenizerBase,
-    RobertaTokenizer,
-)
+from transformers import RobertaTokenizerFast
 
 from media_frame_transformer.utils import load_json, save_json
 
-# TOKENIZER = RobertaTokenizer.from_pretrained("roberta-base")
-# TOKENIZER_NAME = "roberta"
-# TOKENIZER = AlbertTokenizer.from_pretrained("albert-large-v2")
-# TOKENIZER_NAME = "albert"
-TOKENIZER = DistilBertTokenizerFast.from_pretrained("distilbert-base-uncased")
-TOKENIZER_NAME = "distilbert"
+TOKENIZER = RobertaTokenizerFast.from_pretrained("roberta-base")
 
 
-def tokenize_data(data):
+def encode_data(data):
     id2tokens = {}
     for k, v in tqdm(data.items()):
 
@@ -29,11 +19,8 @@ def tokenize_data(data):
         lines = text.split("\n\n")
         lines = lines[3:]  # first 3 lines are id, "PRIMARY", title
         text = "\n".join(lines)
-        # filter out long text
-        if len(TOKENIZER.tokenize(text)) > 500:
-            continue
-        tokens = TOKENIZER.encode(text, add_special_tokens=True, padding="max_length")
-        assert len(tokens) == 512
+        tokens = TOKENIZER.encode(text, add_special_tokens=True, truncation=True)
+        assert len(tokens) <= 512
         id2tokens[k] = tokens
 
     return id2tokens
@@ -46,10 +33,10 @@ if __name__ == "__main__":
         print(">>", issue)
         data = load_json(join(FRAMING_DATA_DIR, f"{issue}_labeled.json"))
 
-        id2tokens = tokenize_data(data)
+        id2tokens = encode_data(data)
         save_json(
             id2tokens,
-            join(FRAMING_DATA_DIR, f"{issue}_tokenized_{TOKENIZER_NAME}.json"),
+            join(FRAMING_DATA_DIR, f"{issue}_encoded.json"),
         )
 
         testsets = load_json(join(FRAMING_DATA_DIR, f"{issue}_test_sets.json"))
