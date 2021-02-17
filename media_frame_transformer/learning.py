@@ -13,6 +13,8 @@ from media_frame_transformer.utils import DEVICE
 
 N_DATALOADER_WORKER = 6
 TRAIN_BATCHSIZE = 25
+MAX_EPOCH = 15
+NUM_EARLY_STOP_NON_IMPROVE_EPOCH = 3
 
 
 def train(
@@ -20,7 +22,8 @@ def train(
     train_dataset,
     valid_dataset,
     logdir,
-    n_epoch,
+    max_epochs=MAX_EPOCH,
+    num_early_stop_non_improve_epoch=NUM_EARLY_STOP_NON_IMPROVE_EPOCH,
     batchsize=TRAIN_BATCHSIZE,
     n_dataloader_worker=N_DATALOADER_WORKER,
 ):
@@ -43,9 +46,9 @@ def train(
 
     writer = SummaryWriter(logdir)
     lowest_valid_loss = float("inf")
-    # best_model_checkpoint_path = join(logdir, "best.pth")
+    num_non_improve_epoch = 0
 
-    for e in range(n_epoch):
+    for e in range(max_epochs):
         # train
         model.train()
         for i, batch in enumerate(tqdm(train_loader, desc=f"{e}, train")):
@@ -99,6 +102,13 @@ def train(
                 )
                 lowest_valid_loss = valid_loss
                 model.save_pretrained(logdir)
+                num_non_improve_epoch = 0
+            else:
+                num_non_improve_epoch += 1
+                print(">> not improved epoch", num_non_improve_epoch)
+                if num_non_improve_epoch >= num_early_stop_non_improve_epoch:
+                    print(">> early stop")
+                    break
 
     writer.close()
 

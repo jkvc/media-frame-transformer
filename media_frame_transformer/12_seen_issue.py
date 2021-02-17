@@ -11,13 +11,12 @@ from media_frame_transformer.dataset import get_kfold_primary_frames_datasets
 from media_frame_transformer.learning import get_kfold_metrics, train
 from media_frame_transformer.utils import mkdir_overwrite, write_str_list_as_txt
 
-EXPERIMENT_NAME = "1.2.full.zeroth"
-ARCH = "roberta_base"
+EXPERIMENT_NAME = "1.2.roberta_meddrop_half.zeroth"
+ARCH = "roberta_meddrop_half"
 
 KFOLD = 8
 ZEROTH_FOLD_ONLY = True
-N_EPOCH = 12
-BATCHSIZE = 25
+BATCHSIZE = 50
 
 
 def _train():
@@ -48,7 +47,6 @@ def _train():
             train_dataset,
             valid_dataset,
             save_fold,
-            N_EPOCH,
             BATCHSIZE,
         )
 
