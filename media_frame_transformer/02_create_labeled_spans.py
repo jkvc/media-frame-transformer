@@ -10,7 +10,7 @@ from media_frame_transformer.utils import load_json, save_json
 
 TOKENIZER = RobertaTokenizerFast.from_pretrained("roberta-base")
 
-MIN_SPAN_NUM_CHAR = 150
+MIN_SPAN_NUM_CHAR = 300
 
 if __name__ == "__main__":
 

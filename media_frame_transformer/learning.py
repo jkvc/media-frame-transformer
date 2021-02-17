@@ -8,6 +8,7 @@ from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 from transformers import AdamW, AutoModelForSequenceClassification
 
+from media_frame_transformer.dataset import get_kfold_primary_frames_datasets
 from media_frame_transformer.utils import DEVICE
 
 N_DATALOADER_WORKER = 6
@@ -48,12 +49,14 @@ def train(
         # train
         model.train()
         for i, batch in enumerate(tqdm(train_loader, desc=f"{e}, train")):
-            xs, ys, _ = batch  # todo
-            xs, ys = xs.to(DEVICE), ys.to(DEVICE)
+            xs, ys, weights = batch
+            xs, ys, weights = xs.to(DEVICE), ys.to(DEVICE), weights.to(DEVICE)
 
             optimizer.zero_grad()
             outputs = model(xs)
-            loss = F.cross_entropy(outputs.logits, ys, reduction="mean")
+            loss = F.cross_entropy(outputs.logits, ys, reduction="none")
+            loss = loss * weights
+            loss = loss.mean()
             loss.backward()
             optimizer.step()
 
@@ -165,13 +168,19 @@ def valid(
 
 
 def get_kfold_metrics(
-    issues, task, kfold, kfold_models_root, valid_on_train_also=False
+    issues,
+    kfold,
+    kfold_models_root,
+    valid_on_train_also=False,
+    zeroth_fold_only=False,
 ):
     for ki in range(kfold):
         assert exists(join(kfold_models_root, f"fold_{ki}"))
+        if zeroth_fold_only:
+            break
 
     issue_metrics = defaultdict(list)
-    kfold_datasets = load_kfold(issues, task, kfold)
+    kfold_datasets = get_kfold_primary_frames_datasets(issues, kfold)
 
     for ki, datasets in enumerate(kfold_datasets):
         valid_dataset = datasets["valid"]
@@ -184,6 +193,9 @@ def get_kfold_metrics(
         metrics = valid(model, valid_dataset, train_dataset)
         for k, v in metrics.items():
             issue_metrics[k].append(v)
+
+        if zeroth_fold_only:
+            break
 
     metrics = {k: sum(vs) / len(vs) for k, vs in issue_metrics.items()}
     return metrics

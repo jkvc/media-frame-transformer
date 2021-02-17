@@ -20,14 +20,14 @@ PAD_TOK_IDX = 1
 class TextSample:
     text: str
     code: float
-    is_span: bool = False
+    weight: float = 1
 
 
 def pad_encoded(x):
     return x + ([PAD_TOK_IDX] * (INPUT_N_TOKEN - len(x)))
 
 
-def get_text(text):
+def clean_text(text):
     lines = text.split("\n\n")
     lines = lines[3:]  # first 3 lines are id, "PRIMARY", title
     text = "\n".join(lines)
@@ -35,9 +35,8 @@ def get_text(text):
 
 
 def load_kfold_primary_frame_samples(
-    issues: List[str],
-    k: int,
-):
+    issues: List[str], k: int
+) -> List[Dict[str, List[TextSample]]]:
     for issue in issues:
         assert exists(
             join(FRAMING_DATA_DIR, f"{issue}_{k}_folds.json")
@@ -53,24 +52,26 @@ def load_kfold_primary_frame_samples(
             for id in fold["train"]:
                 fold2split2samples[ki]["train"].append(
                     TextSample(
-                        text=get_text(raw_data[id]["text"]),
+                        text=clean_text(raw_data[id]["text"]),
                         code=raw_data[id]["primary_frame"],
-                        is_span=False,
+                        weight=1,
                     )
                 )
             for id in fold["valid"]:
                 fold2split2samples[ki]["valid"].append(
                     TextSample(
-                        text=get_text(raw_data[id]["text"]),
+                        text=clean_text(raw_data[id]["text"]),
                         code=raw_data[id]["primary_frame"],
-                        is_span=False,
+                        weight=1,
                     )
                 )
     return fold2split2samples
 
 
-def get_frame_index(frame_float: float):
+def frame_code_to_idx(frame_float: float) -> int:
+    # see codes.json, non null frames are [1.?, 15.?], map them to [0, 14]
     assert frame_float != 0
+    assert frame_float < 16
     return int(frame_float) - 1
 
 
@@ -94,15 +95,18 @@ class PrimaryFrameDataset(Dataset):
                 padding="max_length",
             )
         )
-        y = get_frame_index(sample.code)
-        return (x, y, sample.is_span)
+        y = frame_code_to_idx(sample.code)
+        return (x, y, sample.weight)
 
 
 def get_kfold_primary_frames_datasets(
-    issues: List[str],
-    k: int,
-):
+    issues: List[str], k: int
+) -> List[Dict[str, List[PrimaryFrameDataset]]]:
     fold2split2samples = load_kfold_primary_frame_samples(issues, k)
+    return fold2split2samples_to_datasets(fold2split2samples)
+
+
+def fold2split2samples_to_datasets(fold2split2samples):
     fold2split2datasets = [
         {
             split_name: PrimaryFrameDataset(split_samples)
@@ -131,7 +135,7 @@ if __name__ == "__main__":
 # ) -> List[Dict[str, Dataset]]:
 #     assert task in ["primary_frame"]  # todo support more transforms
 #     if task == "primary_frame":
-#         label_transform = get_frame_index
+#         label_transform = frame_code_to_idx
 #     else:
 #         label_transform = lambda x: x  # identity, placeholder
 
