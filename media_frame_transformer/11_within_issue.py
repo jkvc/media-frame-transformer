@@ -1,22 +1,26 @@
+from collections import defaultdict
 from os import mkdir, write
 from os.path import exists, join
 
+import pandas as pd
 from config import ISSUES, MODELS_DIR
 
 from media_frame_transformer import models
 from media_frame_transformer.dataset import get_kfold_primary_frames_datasets
-from media_frame_transformer.learning import train
+from media_frame_transformer.learning import get_kfold_metrics, train
 from media_frame_transformer.utils import mkdir_overwrite, write_str_list_as_txt
 
-EXPERIMENT_NAME = "1.1.test"
-ARCH = "roberta_base_half"
+EXPERIMENT_NAME = "1.1.full.zeroth"
+ARCH = "roberta_base"
 
 
 KFOLD = 8
-N_EPOCH = 10
-BATCHSIZE = 50
+ZEROTH_FOLD_ONLY = True
+N_EPOCH = 12
+BATCHSIZE = 25
 
-if __name__ == "__main__":
+
+def _train():
     save_root = join(MODELS_DIR, EXPERIMENT_NAME)
     if not exists(save_root):
         mkdir(save_root)
@@ -29,6 +33,8 @@ if __name__ == "__main__":
 
         kfold_datasets = get_kfold_primary_frames_datasets([issue], KFOLD)
         for ki, datasets in enumerate(kfold_datasets):
+            if ZEROTH_FOLD_ONLY and ki != 0:
+                break
 
             # skip done
             save_fold_path = join(save_issue_path, f"fold_{ki}")
@@ -52,3 +58,37 @@ if __name__ == "__main__":
 
             # mark done
             write_str_list_as_txt(["."], join(save_fold_path, "_complete"))
+
+
+def _valid():
+    root_path = join(MODELS_DIR, EXPERIMENT_NAME)
+    assert exists(
+        root_path
+    ), f"{root_path} does not exist, choose the correct experiment name"
+
+    metrics_save_filepath = join(root_path, "metrics.csv")
+    assert not exists(metrics_save_filepath)
+
+    issue2metrics = {}
+    for issue in ISSUES:
+        print(issue)
+        issue_path = join(root_path, issue)
+
+        metrics = get_kfold_metrics(
+            [issue],
+            KFOLD,
+            issue_path,
+            valid_on_train_also=False,
+            zeroth_fold_only=ZEROTH_FOLD_ONLY,
+        )
+        issue2metrics[issue] = metrics
+
+    df = pd.DataFrame.from_dict(issue2metrics, orient="index")
+    df.loc["mean"] = df.mean()
+    print(df)
+    df.to_csv(metrics_save_filepath)
+
+
+if __name__ == "__main__":
+    _train()
+    _valid()

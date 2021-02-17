@@ -144,7 +144,7 @@ def valid(
             total_n_correct = 0
             total_loss = 0
             for i, batch in enumerate(tqdm(dataloader, desc=splitname)):
-                xs, ys = batch
+                xs, ys, _ = batch
                 xs, ys = xs.to(DEVICE), ys.to(DEVICE)
                 outputs = model(xs)
                 loss = F.cross_entropy(outputs.logits, ys, reduction="sum")
