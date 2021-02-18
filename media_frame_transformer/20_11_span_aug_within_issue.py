@@ -16,15 +16,15 @@ from media_frame_transformer.dataset import (
 from media_frame_transformer.learning import get_kfold_metrics, train
 from media_frame_transformer.utils import mkdir_overwrite, write_str_list_as_txt
 
-EXPERIMENT_NAME = "2.0.1.1.roberta_meddrop_half.zeroth.w2.min150"
-ARCH = "roberta_meddrop_half"
+EXPERIMENT_NAME = "2.0.1.1.roberta_meddrop.zeroth.w2.min150"
+ARCH = "roberta_meddrop"
 
 AUG_WEIGHT = 0.2
 
 ZEROTH_FOLD_ONLY = True
 KFOLD = 8
 
-BATCHSIZE = 50
+BATCHSIZE = 25
 
 
 def _train():
