@@ -16,7 +16,7 @@ from media_frame_transformer.dataset import (
 from media_frame_transformer.learning import get_kfold_metrics, train
 from media_frame_transformer.utils import mkdir_overwrite, write_str_list_as_txt
 
-EXPERIMENT_NAME = "2.0.1.1.roberta_meddrop_half.zeroth.w2"
+EXPERIMENT_NAME = "2.0.1.1.roberta_meddrop_half.zeroth.w2.min150"
 ARCH = "roberta_meddrop_half"
 
 AUG_WEIGHT = 0.2

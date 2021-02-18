@@ -92,14 +92,14 @@ def train(
             valid_loss = total_loss / total_n_samples
             writer.add_scalar("valid loss", valid_loss.item(), e)
 
+            print(
+                ">> valid loss",
+                round(valid_loss.item(), 4),
+                "valid acc",
+                round(valid_acc.item(), 4),
+            )
             if valid_loss < lowest_valid_loss:
-                print(
-                    ">> new best valid loss",
-                    round(valid_loss.item(), 4),
-                    "valid acc",
-                    round(valid_acc.item(), 4),
-                    "save checkpoint",
-                )
+                print(">> new best valid loss save checkpoint")
                 lowest_valid_loss = valid_loss
                 model.save_pretrained(logdir)
                 num_non_improve_epoch = 0
