@@ -57,54 +57,14 @@ def train(
 
     for e in range(max_epochs):
         # train
-        # model.train()
-        # for i, batch in enumerate(tqdm(train_loader, desc=f"{e}, train")):
-        #     xs, ys, weights = batch
-        #     xs, ys, weights = xs.to(DEVICE), ys.to(DEVICE), weights.to(DEVICE)
-
-        #     optimizer.zero_grad()
-        #     outputs = model(xs)
-        #     loss = F.cross_entropy(outputs.logits, ys, reduction="none")
-        #     loss = loss * weights
-        #     loss = loss.mean()
-        #     loss.backward()
-        #     optimizer.step()
-
-        #     # tensorboard
-        #     step_idx = e * len(train_loader) + i
-        #     train_loss = loss.item()
-        #     writer.add_scalar("train loss", train_loss, step_idx)
-        #     is_correct = torch.argmax(outputs.logits, dim=-1) == ys
-        #     train_acc = is_correct.sum() / ys.shape[0]
-        #     writer.add_scalar("train acc", train_acc, step_idx)
-        train_acc, train_loss = _train_epoch(model, optimizer, train_loader, writer, e)
+        train_acc, train_loss = train_epoch(model, optimizer, train_loader, writer, e)
         metrics["train_acc"] = train_acc
         metrics["train_loss"] = train_loss
 
         # valid
-        # model.eval()
-        # with torch.no_grad():
-        #     total_n_samples = 0
-        #     total_n_correct = 0
-        #     total_loss = 0
-        #     for i, batch in enumerate(tqdm(valid_loader, desc=f"{e}, valid")):
-        #         xs, ys, _ = batch
-        #         xs, ys = xs.to(DEVICE), ys.to(DEVICE)
-        #         outputs = model(xs)
-        #         loss = F.cross_entropy(outputs.logits, ys, reduction="sum")
-        #         total_loss += loss
-        #         is_correct = torch.argmax(outputs.logits, dim=-1) == ys
-        #         total_n_correct += is_correct.sum()
-        #         total_n_samples += ys.shape[0]
-
-        #     valid_acc = total_n_correct / total_n_samples
-        #     writer.add_scalar("valid acc", valid_acc, e)
-        #     valid_loss = total_loss / total_n_samples
-        #     writer.add_scalar("valid loss", valid_loss.item(), e)
-
-        valid_acc, valid_loss = _valid_epoch(model, valid_loader, writer, e)
-
+        valid_acc, valid_loss = valid_epoch(model, valid_loader, writer, e)
         if valid_loss < metrics["valid_loss"]:
+            # new best, save stuff
             print(">> new best valid loss save checkpoint")
             metrics["valid_loss"] = valid_loss
             metrics["valid_acc"] = valid_acc
@@ -112,6 +72,7 @@ def train(
             num_non_improve_epoch = 0
             save_json(metrics, join(logdir, "leaf_metrics.json"))
         else:
+            # not improving
             num_non_improve_epoch += 1
             print(">> not improved epoch", num_non_improve_epoch)
             if num_non_improve_epoch >= num_early_stop_non_improve_epoch:
@@ -122,7 +83,7 @@ def train(
     writer.close()
 
 
-def _valid_epoch(model, valid_loader, writer=None, epoch_idx=None):
+def valid_epoch(model, valid_loader, writer=None, epoch_idx=None):
     model.eval()
     total_n_samples = 0
     total_n_correct = 0
@@ -154,7 +115,7 @@ def _valid_epoch(model, valid_loader, writer=None, epoch_idx=None):
     return valid_acc, valid_loss
 
 
-def _train_epoch(model, optimizer, train_loader, writer=None, epoch_idx=None):
+def train_epoch(model, optimizer, train_loader, writer=None, epoch_idx=None):
     total_n_samples = total_n_correct = total_loss = 0
 
     model.train()
