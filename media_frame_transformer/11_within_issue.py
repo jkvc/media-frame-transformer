@@ -8,14 +8,18 @@ from config import ISSUES, MODELS_DIR
 from media_frame_transformer import models
 from media_frame_transformer.dataset import get_kfold_primary_frames_datasets
 from media_frame_transformer.learning import get_kfold_metrics, train
-from media_frame_transformer.utils import mkdir_overwrite, write_str_list_as_txt
+from media_frame_transformer.utils import (
+    mkdir_overwrite,
+    save_json,
+    write_str_list_as_txt,
+)
 
-EXPERIMENT_NAME = "1.1.roberta_meddrop_half.zeroth"
-ARCH = "roberta_meddrop_half"
+EXPERIMENT_NAME = "1.1.roberta_half.best"
+ARCH = "roberta_half"
 
 
 KFOLD = 8
-ZEROTH_FOLD_ONLY = True
+ZEROTH_FOLD_ONLY = False
 BATCHSIZE = 50
 
 
@@ -35,8 +39,11 @@ def _train():
             if ZEROTH_FOLD_ONLY and ki != 0:
                 break
 
-            # skip done
             save_fold_path = join(save_issue_path, f"fold_{ki}")
+            valid_config = {"arch": ARCH, "kfold": KFOLD, "ki": ki, "issues": [issue]}
+            save_json(valid_config, join(save_fold_path, "valid_config.json"))
+
+            # skip done
             if exists(join(save_fold_path, "_complete")):
                 print(">> skip", ki)
                 continue

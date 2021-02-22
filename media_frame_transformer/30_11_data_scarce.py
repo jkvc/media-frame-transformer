@@ -19,7 +19,8 @@ ARCH = "roberta_meddrop_half"
 
 
 KFOLD = 8
-ZEROTH_FOLD_ONLY = True
+FOLDS_TO_RUN = [0, 1, 2, 3]
+
 BATCHSIZE = 50
 DATASET_SIZE_PROPS = [0.2, 0.4, 0.6, 0.8, 1.0]
 
@@ -60,8 +61,9 @@ def _train():
             )
 
             for ki, datasets in enumerate(kfold_datasets):
-                if ZEROTH_FOLD_ONLY and ki != 0:
-                    break
+                if ki not in FOLDS_TO_RUN:
+                    print(">> not running fold", ki)
+                    continue
 
                 # skip done
                 save_fold_path = join(save_issue_path, f"fold_{ki}")
@@ -102,7 +104,7 @@ def _valid_props():
             print(issue)
             issue_path = join(root_path, issue)
 
-            metrics = get_kfold_metrics(
+            metrics = get_kfold_metrics(  # todo
                 [issue],
                 KFOLD,
                 issue_path,
@@ -119,4 +121,4 @@ def _valid_props():
 
 if __name__ == "__main__":
     _train()
-    _valid_props()
+    # _valid_props()
