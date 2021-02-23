@@ -29,7 +29,7 @@ def do_valid_model(pretrained_model_dir):
 
 
 def eval_pretrained_model(pretrained_model_dir):
-    metrics_json_path = join(pretrained_model_dir, "metrics.json")
+    metrics_json_path = join(pretrained_model_dir, "leaf_metrics.json")
     if not exists(metrics_json_path):
         metrics = do_valid_model(pretrained_model_dir)
         save_json(metrics, metrics_json_path)
@@ -37,7 +37,7 @@ def eval_pretrained_model(pretrained_model_dir):
         metrics = load_json(metrics_json_path)
 
     df = pd.DataFrame.from_dict(metrics, orient="index")
-    df.to_csv(join(pretrained_model_dir, "metrics.csv"))
+    df.to_csv(join(pretrained_model_dir, "leaf_metrics.csv"))
 
 
 def eval_all_leaves(experiment_dir):
