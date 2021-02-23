@@ -86,7 +86,7 @@ def save_tree(rootdir, tree):
     df.to_csv(join(rootdir, "mean_metrics.csv"))
 
 
-def reduce_and_save_stats(rootdir, leaf_metric_filename="leaf_metrics.json"):
+def reduce_and_save_metrics(rootdir, leaf_metric_filename="leaf_metrics.json"):
     leaf_metric_paths = sorted(
         glob(join(rootdir, "**", leaf_metric_filename), recursive=True)
     )
@@ -115,4 +115,4 @@ def reduce_and_save_stats(rootdir, leaf_metric_filename="leaf_metrics.json"):
 if __name__ == "__main__":
     exp_dir = join(MODELS_DIR, "1.1.roberta_half.best")
     eval_all_leaves(exp_dir)
-    reduce_and_save_stats(exp_dir)
+    reduce_and_save_metrics(exp_dir)
