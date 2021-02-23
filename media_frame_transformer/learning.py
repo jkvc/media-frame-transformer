@@ -214,7 +214,7 @@ def valid(
             )
             metrics[f"{splitname}_acc"] = valid_acc
             metrics[f"{splitname}_loss"] = valid_loss
-
+    print(metrics)
     return metrics
 
 

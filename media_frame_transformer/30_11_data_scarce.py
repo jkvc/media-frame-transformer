@@ -89,36 +89,5 @@ def _train():
                 write_str_list_as_txt(["."], join(save_fold_path, "_complete"))
 
 
-def _valid_props():
-    for prop in DATASET_SIZE_PROPS:
-        root_path = join(MODELS_DIR, EXPERIMENT_NAME, str(prop))
-        assert exists(
-            root_path
-        ), f"{root_path} does not exist, choose the correct experiment name"
-
-        metrics_save_filepath = join(root_path, "metrics.csv")
-        assert not exists(metrics_save_filepath)
-
-        issue2metrics = {}
-        for issue in ISSUES:
-            print(issue)
-            issue_path = join(root_path, issue)
-
-            metrics = get_kfold_metrics(  # todo
-                [issue],
-                KFOLD,
-                issue_path,
-                valid_on_train_also=False,
-                zeroth_fold_only=ZEROTH_FOLD_ONLY,
-            )
-            issue2metrics[issue] = metrics
-
-        df = pd.DataFrame.from_dict(issue2metrics, orient="index")
-        df.loc["mean"] = df.mean()
-        print(df)
-        df.to_csv(metrics_save_filepath)
-
-
 if __name__ == "__main__":
     _train()
-    # _valid_props()

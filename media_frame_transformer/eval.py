@@ -1,6 +1,7 @@
 from collections import defaultdict
 from glob import glob
 from os.path import dirname, exists, join
+from pprint import pprint
 
 import pandas as pd
 import torch
@@ -12,20 +13,28 @@ from tqdm import tqdm
 from transformers import AdamW, AutoModelForSequenceClassification
 
 from media_frame_transformer.dataset import get_kfold_primary_frames_datasets
-from media_frame_transformer.learning import valid
+from media_frame_transformer.learning import valid, valid_epoch
 from media_frame_transformer.utils import DEVICE, load_json, save_json
 
 
 def do_valid_model(pretrained_model_dir):
     valid_config = load_json(join(pretrained_model_dir, "valid_config.json"))
 
-    model = AutoModelForSequenceClassification.from_pretrained(pretrained_model_dir)
+    model = AutoModelForSequenceClassification.from_pretrained(pretrained_model_dir).to(
+        DEVICE
+    )
     kfold_datasets = get_kfold_primary_frames_datasets(
         issues=valid_config["issues"], k=valid_config["kfold"]
     )
     valid_dataset = kfold_datasets[valid_config["ki"]]["valid"]
-    metrics = valid(model, valid_dataset)
-    return {"mean": metrics}
+    valid_loader = DataLoader(valid_dataset, batch_size=500, shuffle=True)
+    valid_acc, valid_loss = valid_epoch(model, valid_loader)
+    return {
+        "mean": {
+            "valid_acc": valid_acc,
+            "valid_loss": valid_loss,
+        },
+    }
 
 
 def eval_pretrained_model(pretrained_model_dir):
@@ -50,5 +59,60 @@ def eval_all_leaves(experiment_dir):
         eval_pretrained_model(d)
 
 
+def reduce_recursive(rootdir, leaf_metric_filename="leaf_metrics.json"):
+    leaf_metric_paths = sorted(
+        glob(join(rootdir, "**", leaf_metric_filename), recursive=True)
+    )
+    pprint(leaf_metric_paths)
+
+    # build tree to leaf metrics
+    tree = {}
+    for p in leaf_metric_paths:
+        parent = tree
+        toks = p.replace(rootdir, "").strip("/").split("/")
+        for i, child in enumerate(toks[:-1]):
+            if child not in parent:
+                if i == len(toks) - 2:
+                    parent[child] = load_json(p)
+                else:
+                    parent[child] = {}
+            parent = parent[child]
+    pprint(tree)
+
+    reduce_mean_inplace(tree)
+    pprint(tree)
+
+    save_tree(rootdir, tree)
+
+
+def reduce_mean_inplace(tree):
+    root = tree
+    metrics = defaultdict(list)
+    for child in root.values():
+        if "mean" not in child:
+            reduce_mean_inplace(child)
+        child_mean = child["mean"]
+        for k, v in child_mean.items():
+            metrics[k].append(v)
+    mean_metrics = {k: sum(v) / len(v) for k, v in metrics.items()}
+    root["mean"] = mean_metrics
+
+
+def save_tree(rootdir, tree):
+    save_json(tree, join(rootdir, "mean_metrics.json"))
+
+    meanrows = {}
+    for childname, subtree in tree.items():
+        if childname != "mean":
+            save_tree(join(rootdir, childname), subtree)
+            meanrows[childname] = subtree["mean"]
+
+    meanrows["mean"] = tree["mean"]
+    df = pd.DataFrame.from_dict(meanrows, orient="index")
+    df.to_csv(join(rootdir, "mean_metrics.csv"))
+
+
 if __name__ == "__main__":
-    eval_all_leaves(join(MODELS_DIR, "1.1.roberta_half.best"))
+    exp_dir = join(MODELS_DIR, "1.1.roberta_half.best")
+    eval_all_leaves(exp_dir)
+    reduce_recursive(exp_dir)
