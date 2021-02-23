@@ -59,38 +59,12 @@ def eval_all_leaves(experiment_dir):
         eval_pretrained_model(d)
 
 
-def reduce_recursive(rootdir, leaf_metric_filename="leaf_metrics.json"):
-    leaf_metric_paths = sorted(
-        glob(join(rootdir, "**", leaf_metric_filename), recursive=True)
-    )
-    pprint(leaf_metric_paths)
-
-    # build tree to leaf metrics
-    tree = {}
-    for p in leaf_metric_paths:
-        parent = tree
-        toks = p.replace(rootdir, "").strip("/").split("/")
-        for i, child in enumerate(toks[:-1]):
-            if child not in parent:
-                if i == len(toks) - 2:
-                    parent[child] = load_json(p)
-                else:
-                    parent[child] = {}
-            parent = parent[child]
-    pprint(tree)
-
-    reduce_mean_inplace(tree)
-    pprint(tree)
-
-    save_tree(rootdir, tree)
-
-
-def reduce_mean_inplace(tree):
+def reduce_tree_inplace(tree):
     root = tree
     metrics = defaultdict(list)
     for child in root.values():
         if "mean" not in child:
-            reduce_mean_inplace(child)
+            reduce_tree_inplace(child)
         child_mean = child["mean"]
         for k, v in child_mean.items():
             metrics[k].append(v)
@@ -112,7 +86,33 @@ def save_tree(rootdir, tree):
     df.to_csv(join(rootdir, "mean_metrics.csv"))
 
 
+def reduce_and_save_stats(rootdir, leaf_metric_filename="leaf_metrics.json"):
+    leaf_metric_paths = sorted(
+        glob(join(rootdir, "**", leaf_metric_filename), recursive=True)
+    )
+    pprint(leaf_metric_paths)
+
+    # build tree to leaf metrics
+    tree = {}
+    for p in leaf_metric_paths:
+        parent = tree
+        toks = p.replace(rootdir, "").strip("/").split("/")
+        for i, child in enumerate(toks[:-1]):
+            if child not in parent:
+                if i == len(toks) - 2:
+                    parent[child] = {"mean": load_json(p)}
+                else:
+                    parent[child] = {}
+            parent = parent[child]
+    pprint(tree)
+
+    reduce_tree_inplace(tree)
+    pprint(tree)
+
+    save_tree(rootdir, tree)
+
+
 if __name__ == "__main__":
     exp_dir = join(MODELS_DIR, "1.1.roberta_half.best")
     eval_all_leaves(exp_dir)
-    reduce_recursive(exp_dir)
+    reduce_and_save_stats(exp_dir)

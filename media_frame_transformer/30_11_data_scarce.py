@@ -11,6 +11,7 @@ from media_frame_transformer.dataset import (
     get_kfold_primary_frames_datasets,
     load_kfold_primary_frame_samples,
 )
+from media_frame_transformer.eval import reduce_and_save_stats
 from media_frame_transformer.learning import get_kfold_metrics, train
 from media_frame_transformer.utils import mkdir_overwrite, write_str_list_as_txt
 
@@ -91,3 +92,4 @@ def _train():
 
 if __name__ == "__main__":
     _train()
+    reduce_and_save_stats(join(MODELS_DIR, EXPERIMENT_NAME))
