@@ -24,7 +24,7 @@ ARCH = "roberta_meddrop_half"
 AUG_WEIGHT = 0.2
 MIN_SPAN_LEN = 450
 
-ZEROTH_FOLD_ONLY = True
+FOLDS_TO_RUN = [0, 1, 2]
 KFOLD = 8
 
 BATCHSIZE = 50
@@ -46,8 +46,9 @@ def _train():
 
     augmented_datasets = fold2split2samples_to_datasets(fold2split2samples)
     for ki, datasets in enumerate(augmented_datasets):
-        if ZEROTH_FOLD_ONLY and ki != 0:
-            break
+        if ki not in FOLDS_TO_RUN:
+            print(">> not running fold", ki)
+            continue
 
         save_fold = join(save_root, f"fold_{ki}")
         if exists(join(save_fold, "_complete")):

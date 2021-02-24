@@ -45,9 +45,6 @@ def get_kfold_multi_span_frame_train_samples_predefined_issue(
     aug_set_size_multiplier: Number,
     augment_sample_weight: float,
 ) -> List[List[TextSample]]:
-    assert exists(
-        join(FRAMING_DATA_DIR, f"{issue}_{k}_folds.json")
-    ), f"{issue}_{k}_folds.json does not exist, run create_kfold first"
     frame_span_data = load_json(
         join(AUG_MULTI_SPANS_DIR, f"{issue}_{k}folds_{aug_set_size_multiplier}x.json")
     )

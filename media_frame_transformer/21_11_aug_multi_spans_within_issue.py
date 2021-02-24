@@ -43,7 +43,6 @@ def _train():
 
         fold2split2samples = load_kfold_primary_frame_samples([issue], KFOLD)
         print(">> before aug", len(fold2split2samples[0]["train"]))
-
         aug_fold2samples = get_kfold_multi_span_frame_train_samples_predefined_issue(
             issue, KFOLD, AUG_SET_SIZE_MULTIPLIER, AUG_WEIGHT
         )
