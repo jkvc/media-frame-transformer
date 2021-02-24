@@ -13,7 +13,7 @@ from media_frame_transformer.dataset import frame_code_to_idx, label_idx_to_fram
 from media_frame_transformer.utils import ParallelHandler, load_json, save_json
 
 KFOLD = 8
-AUG_SET_SIZE_MULTIPLIER = 4
+AUG_SET_SIZE_MULTIPLIER = 1
 
 MAX_SAMPLE_NUMCHAR = 500
 MIN_SAMPLE_NUMCHAR = 30
