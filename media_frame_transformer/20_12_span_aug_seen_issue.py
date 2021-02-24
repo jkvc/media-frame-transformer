@@ -8,22 +8,26 @@ from config import ISSUES, MODELS_DIR
 
 from media_frame_transformer import models
 from media_frame_transformer.data_aug import (
-    augment_train_splits, get_kfold_single_span_frame_train_samples)
-from media_frame_transformer.dataset import (fold2split2samples_to_datasets,
-                                             load_kfold_primary_frame_samples)
+    augment_train_splits,
+    get_kfold_single_span_frame_train_samples,
+)
+from media_frame_transformer.dataset import (
+    fold2split2samples_to_datasets,
+    load_kfold_primary_frame_samples,
+)
 from media_frame_transformer.learning import get_kfold_metrics, train
-from media_frame_transformer.utils import (mkdir_overwrite,
-                                           write_str_list_as_txt)
+from media_frame_transformer.utils import mkdir_overwrite, write_str_list_as_txt
 
-EXPERIMENT_NAME = "2.0.1.2.roberta_meddrop.zeroth.w2.min150"
-ARCH = "roberta_meddrop"
+EXPERIMENT_NAME = "2.0.1.2.meddrop_half.w2.min450"
+ARCH = "roberta_meddrop_half"
 
 AUG_WEIGHT = 0.2
+MIN_SPAN_LEN = 450
 
 ZEROTH_FOLD_ONLY = True
 KFOLD = 8
 
-BATCHSIZE = 25
+BATCHSIZE = 50
 
 
 def _train():
@@ -34,7 +38,9 @@ def _train():
     # kfold_datasets = get_kfold_primary_frames_datasets(ISSUES, KFOLD)
     fold2split2samples = load_kfold_primary_frame_samples(ISSUES, KFOLD)
     print(">> before aug", len(fold2split2samples[0]["train"]))
-    aug_fold2samples = get_kfold_single_span_frame_train_samples(ISSUES, KFOLD, AUG_WEIGHT)
+    aug_fold2samples = get_kfold_single_span_frame_train_samples(
+        ISSUES, KFOLD, MIN_SPAN_LEN, AUG_WEIGHT
+    )
     augment_train_splits(fold2split2samples, aug_fold2samples)
     print(">>  after aug", len(fold2split2samples[0]["train"]))
 
@@ -61,61 +67,60 @@ def _train():
             train_dataset,
             valid_dataset,
             save_fold,
-            BATCHSIZE,
+            batchsize=BATCHSIZE,
         )
 
         write_str_list_as_txt(["."], join(save_fold, "_complete"))
 
 
-def _valid_combined_issue():
-    experiment_root_path = join(MODELS_DIR, EXPERIMENT_NAME)
-    assert exists(
-        experiment_root_path
-    ), f"{experiment_root_path} does not exist, choose the correct experiment name"
-
-    metrics_save_filepath = join(experiment_root_path, "metrics_combined_issues.csv")
-    assert not exists(metrics_save_filepath)
-
-    metrics = get_kfold_metrics(
-        ISSUES,
-        KFOLD,
-        experiment_root_path,
-        zeroth_fold_only=ZEROTH_FOLD_ONLY,
-    )
-    metrics = {"all": metrics}
-
-    df = pd.DataFrame.from_dict(metrics, orient="index")
-    print(df)
-    df.to_csv(metrics_save_filepath)
-
-
-def _valid_individual_issue():
-    experiment_root_path = join(MODELS_DIR, EXPERIMENT_NAME)
-    assert exists(
-        experiment_root_path
-    ), f"{experiment_root_path} does not exist, choose the correct experiment name"
-
-    metrics_save_filepath = join(experiment_root_path, "metrics_individual_issues.csv")
-    assert not exists(metrics_save_filepath)
-
-    issue2metrics = {}
-    for issue in ISSUES:
-        print(issue)
-        metrics = get_kfold_metrics(
-            [issue],
-            KFOLD,
-            experiment_root_path,
-            zeroth_fold_only=ZEROTH_FOLD_ONLY,
-        )
-        issue2metrics[issue] = metrics
-
-    df = pd.DataFrame.from_dict(issue2metrics, orient="index")
-    df.loc["mean"] = df.mean()
-    print(df)
-    df.to_csv(metrics_save_filepath)
-
-
 if __name__ == "__main__":
     _train()
-    _valid_combined_issue()
-    _valid_individual_issue()
+    # _valid_combined_issue()
+    # _valid_individual_issue()
+
+# def _valid_combined_issue():
+#     experiment_root_path = join(MODELS_DIR, EXPERIMENT_NAME)
+#     assert exists(
+#         experiment_root_path
+#     ), f"{experiment_root_path} does not exist, choose the correct experiment name"
+
+#     metrics_save_filepath = join(experiment_root_path, "metrics_combined_issues.csv")
+#     assert not exists(metrics_save_filepath)
+
+#     metrics = get_kfold_metrics(
+#         ISSUES,
+#         KFOLD,
+#         experiment_root_path,
+#         zeroth_fold_only=ZEROTH_FOLD_ONLY,
+#     )
+#     metrics = {"all": metrics}
+
+#     df = pd.DataFrame.from_dict(metrics, orient="index")
+#     print(df)
+#     df.to_csv(metrics_save_filepath)
+
+
+# def _valid_individual_issue():
+#     experiment_root_path = join(MODELS_DIR, EXPERIMENT_NAME)
+#     assert exists(
+#         experiment_root_path
+#     ), f"{experiment_root_path} does not exist, choose the correct experiment name"
+
+#     metrics_save_filepath = join(experiment_root_path, "metrics_individual_issues.csv")
+#     assert not exists(metrics_save_filepath)
+
+#     issue2metrics = {}
+#     for issue in ISSUES:
+#         print(issue)
+#         metrics = get_kfold_metrics(
+#             [issue],
+#             KFOLD,
+#             experiment_root_path,
+#             zeroth_fold_only=ZEROTH_FOLD_ONLY,
+#         )
+#         issue2metrics[issue] = metrics
+
+#     df = pd.DataFrame.from_dict(issue2metrics, orient="index")
+#     df.loc["mean"] = df.mean()
+#     print(df)
+#     df.to_csv(metrics_save_filepath)
