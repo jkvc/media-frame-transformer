@@ -8,15 +8,12 @@ from config import ISSUES, MODELS_DIR
 
 from media_frame_transformer import models
 from media_frame_transformer.data_aug import (
-    augment_train_splits,
-    get_kfold_span_frame_train_samples,
-)
-from media_frame_transformer.dataset import (
-    fold2split2samples_to_datasets,
-    load_kfold_primary_frame_samples,
-)
+    augment_train_splits, get_kfold_single_span_frame_train_samples)
+from media_frame_transformer.dataset import (fold2split2samples_to_datasets,
+                                             load_kfold_primary_frame_samples)
 from media_frame_transformer.learning import get_kfold_metrics, train
-from media_frame_transformer.utils import mkdir_overwrite, write_str_list_as_txt
+from media_frame_transformer.utils import (mkdir_overwrite,
+                                           write_str_list_as_txt)
 
 EXPERIMENT_NAME = "2.0.1.2.roberta_meddrop.zeroth.w2.min150"
 ARCH = "roberta_meddrop"
@@ -37,7 +34,7 @@ def _train():
     # kfold_datasets = get_kfold_primary_frames_datasets(ISSUES, KFOLD)
     fold2split2samples = load_kfold_primary_frame_samples(ISSUES, KFOLD)
     print(">> before aug", len(fold2split2samples[0]["train"]))
-    aug_fold2samples = get_kfold_span_frame_train_samples(ISSUES, KFOLD, AUG_WEIGHT)
+    aug_fold2samples = get_kfold_single_span_frame_train_samples(ISSUES, KFOLD, AUG_WEIGHT)
     augment_train_splits(fold2split2samples, aug_fold2samples)
     print(">>  after aug", len(fold2split2samples[0]["train"]))
 
