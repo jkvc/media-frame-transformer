@@ -1,5 +1,7 @@
+from collections import defaultdict
 from os import mkdir
 from os.path import exists, join
+from pprint import pprint
 
 import numpy as np
 import pandas as pd
@@ -11,8 +13,14 @@ from media_frame_transformer.dataset import (
     get_kfold_primary_frames_datasets,
     load_kfold_primary_frame_samples,
 )
+from media_frame_transformer.eval import reduce_and_save_metrics
 from media_frame_transformer.learning import get_kfold_metrics, train
-from media_frame_transformer.utils import mkdir_overwrite, write_str_list_as_txt
+from media_frame_transformer.utils import (
+    load_json,
+    mkdir_overwrite,
+    write_str_list_as_txt,
+)
+from media_frame_transformer.viualization import plot_series_w_labels
 
 EXPERIMENT_NAME = "3.0.1.2.meddrop_half"
 ARCH = "roberta_meddrop_half"
@@ -80,5 +88,44 @@ def _train():
             write_str_list_as_txt(["."], join(save_fold_path, "_complete"))
 
 
+def _plot():
+    metrics_json_path = join(MODELS_DIR, EXPERIMENT_NAME, "mean_metrics.json")
+    metrics = load_json(metrics_json_path)
+    pprint(metrics)
+
+    metricname2prop2val = defaultdict(dict)
+    for prop in metrics:
+        if prop == "mean":
+            continue
+        for metricname, val in metrics[prop]["mean"].items():
+            metricname2prop2val[metricname][prop] = val
+    pprint(metricname2prop2val)
+    # acc and loss aggregated over all issues
+    acc_name2metrics = {}
+    for metricname in ["train_acc", "valid_acc"]:
+        prop2val = metricname2prop2val[metricname]
+        props = sorted(list(prop2val.keys()))
+        vals = [prop2val[prop] for prop in props]
+        acc_name2metrics[metricname] = zip(props, vals)
+    plot_series_w_labels(
+        acc_name2metrics,
+        "accuracy v proportion of training data",
+        join(MODELS_DIR, EXPERIMENT_NAME, "plot_accs.png"),
+    )
+    loss_name2metrics = {}
+    for metricname in ["train_loss", "valid_loss"]:
+        prop2val = metricname2prop2val[metricname]
+        props = sorted(list(prop2val.keys()))
+        vals = [prop2val[prop] for prop in props]
+        loss_name2metrics[metricname] = zip(props, vals)
+    plot_series_w_labels(
+        loss_name2metrics,
+        "loss v proportion of training data",
+        join(MODELS_DIR, EXPERIMENT_NAME, "plot_loss.png"),
+    )
+
+
 if __name__ == "__main__":
-    _train()
+    # _train()
+    reduce_and_save_metrics(join(MODELS_DIR, EXPERIMENT_NAME))
+    _plot()

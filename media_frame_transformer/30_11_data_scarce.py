@@ -3,24 +3,22 @@ from os import mkdir
 from os.path import exists, join
 from pprint import pprint
 
-import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
 from config import ISSUES, MODELS_DIR
 
 from media_frame_transformer import models
 from media_frame_transformer.dataset import (
     fold2split2samples_to_datasets,
-    get_kfold_primary_frames_datasets,
     load_kfold_primary_frame_samples,
 )
 from media_frame_transformer.eval import reduce_and_save_metrics
-from media_frame_transformer.learning import get_kfold_metrics, train
+from media_frame_transformer.learning import train
 from media_frame_transformer.utils import (
     load_json,
     mkdir_overwrite,
     write_str_list_as_txt,
 )
+from media_frame_transformer.viualization import plot_series_w_labels
 
 EXPERIMENT_NAME = "3.0.1.1.meddrop_half"
 ARCH = "roberta_meddrop_half"
@@ -174,25 +172,7 @@ def _plot():
     )
 
 
-def plot_series_w_labels(name2xys, title, save_path):
-    plt.clf()
-    for name, xys in name2xys.items():
-        xs, ys = list(zip(*xys))
-        plt.plot(xs, ys, label=name)
-        for x, y in zip(xs, ys):
-            label = label = "{:.3f}".format(y)
-            plt.annotate(
-                label,  # this is the text
-                (x, y),  # this is the point to label
-                ha="center",
-            )  # horizontal alignment can be left, right or center
-    plt.legend()
-    plt.title(title)
-    plt.savefig(save_path)
-    plt.clf()
-
-
 if __name__ == "__main__":
-    # _train()
-    # reduce_and_save_metrics(join(MODELS_DIR, EXPERIMENT_NAME))
+    _train()
+    reduce_and_save_metrics(join(MODELS_DIR, EXPERIMENT_NAME))
     _plot()
