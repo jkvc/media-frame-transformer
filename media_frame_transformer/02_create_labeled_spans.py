@@ -2,7 +2,7 @@ from collections import defaultdict
 from os.path import join
 
 import pandas as pd
-from config import FRAMING_DATA_DIR, ISSUES
+from config import AUG_SINGLE_SPANS_DIR, FRAMING_DATA_DIR, ISSUES
 from tqdm import tqdm
 from transformers import RobertaTokenizerFast
 
@@ -10,7 +10,7 @@ from media_frame_transformer.utils import load_json, save_json
 
 TOKENIZER = RobertaTokenizerFast.from_pretrained("roberta-base")
 
-MIN_SPAN_NUM_CHAR = 150
+MIN_SPAN_NUM_CHAR = 450
 
 if __name__ == "__main__":
 
@@ -43,7 +43,11 @@ if __name__ == "__main__":
                         }
                     )
         save_json(
-            labeled_span_data, join(FRAMING_DATA_DIR, f"{issue}_frame_spans.json")
+            labeled_span_data,
+            join(
+                AUG_SINGLE_SPANS_DIR,
+                f"{issue}_frame_spans_min{MIN_SPAN_NUM_CHAR}.json",
+            ),
         )
 
         num_spans = sum(len(l) for l in labeled_span_data.values())
@@ -55,4 +59,9 @@ if __name__ == "__main__":
 
     df = pd.DataFrame.from_dict(stats, orient="index")
     df["ratio"] = df["num_spans"] / df["num_articles"]
-    df.to_csv(join(FRAMING_DATA_DIR, "stats_spans.csv"))
+    df.to_csv(
+        join(
+            AUG_SINGLE_SPANS_DIR,
+            f"stats_spans_min{MIN_SPAN_NUM_CHAR}.csv",
+        )
+    )

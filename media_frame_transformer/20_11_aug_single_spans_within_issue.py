@@ -13,16 +13,18 @@ from media_frame_transformer.dataset import (
     fold2split2samples_to_datasets,
     load_kfold_primary_frame_samples,
 )
+from media_frame_transformer.eval import reduce_and_save_metrics
 from media_frame_transformer.learning import get_kfold_metrics, train
 from media_frame_transformer.utils import mkdir_overwrite, write_str_list_as_txt
 
-EXPERIMENT_NAME = "2.0.1.1.roberta_meddrop_half.zeroth.w2.min150"
-ARCH = "roberta_meddrop"
+EXPERIMENT_NAME = "2.0.1.1.meddrop_half.w2.min150"
+ARCH = "roberta_meddrop_half"
 
 AUG_WEIGHT = 0.2
+MIN_SPAN_LEN = 450
 
-ZEROTH_FOLD_ONLY = False
 KFOLD = 8
+FOLDS_TO_RUN = [0, 1, 2]
 
 BATCHSIZE = 25
 
@@ -41,7 +43,7 @@ def _train():
         fold2split2samples = load_kfold_primary_frame_samples([issue], KFOLD)
         print(">> before aug", len(fold2split2samples[0]["train"]))
         aug_fold2samples = get_kfold_span_frame_train_samples(
-            [issue], KFOLD, AUG_WEIGHT
+            [issue], KFOLD, MIN_SPAN_LEN, AUG_WEIGHT
         )
         augment_train_splits(fold2split2samples, aug_fold2samples)
         print(">>  after aug", len(fold2split2samples[0]["train"]))
@@ -49,8 +51,9 @@ def _train():
         augmented_datasets = fold2split2samples_to_datasets(fold2split2samples)
         for ki, datasets in enumerate(augmented_datasets):
 
-            if ZEROTH_FOLD_ONLY and ki != 0:
-                break
+            if ki not in FOLDS_TO_RUN:
+                print(">> not running fold", ki)
+                continue
 
             # skip done
             save_fold_path = join(save_issue_path, f"fold_{ki}")
@@ -63,47 +66,19 @@ def _train():
             valid_dataset = datasets["valid"]
 
             model = models.get_model(ARCH)
+
             train(
                 model,
                 train_dataset,
                 valid_dataset,
-                save_fold_path,
-                BATCHSIZE,
+                logdir=save_fold_path,
+                batchsize=BATCHSIZE,
             )
 
             # mark done
             write_str_list_as_txt(["."], join(save_fold_path, "_complete"))
 
 
-def _valid():
-    root_path = join(MODELS_DIR, EXPERIMENT_NAME)
-    assert exists(
-        root_path
-    ), f"{root_path} does not exist, choose the correct experiment name"
-
-    metrics_save_filepath = join(root_path, "metrics.csv")
-    assert not exists(metrics_save_filepath)
-
-    issue2metrics = {}
-    for issue in ISSUES:
-        print(issue)
-        issue_path = join(root_path, issue)
-
-        metrics = get_kfold_metrics(
-            [issue],
-            KFOLD,
-            issue_path,
-            valid_on_train_also=False,
-            zeroth_fold_only=ZEROTH_FOLD_ONLY,
-        )
-        issue2metrics[issue] = metrics
-
-    df = pd.DataFrame.from_dict(issue2metrics, orient="index")
-    df.loc["mean"] = df.mean()
-    print(df)
-    df.to_csv(metrics_save_filepath)
-
-
 if __name__ == "__main__":
     _train()
-    _valid()
+    reduce_and_save_metrics(join(MODELS_DIR, EXPERIMENT_NAME))

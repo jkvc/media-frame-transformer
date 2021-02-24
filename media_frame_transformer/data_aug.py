@@ -1,7 +1,7 @@
 from os.path import exists, join
 from typing import List
 
-from config import FRAMING_DATA_DIR
+from config import AUG_SINGLE_SPANS_DIR, FRAMING_DATA_DIR
 from tqdm import tqdm
 
 from media_frame_transformer.dataset import TextSample
@@ -9,7 +9,7 @@ from media_frame_transformer.utils import load_json
 
 
 def get_kfold_span_frame_train_samples(
-    issues: List[str], k: int, augment_sample_weight: float
+    issues: List[str], k: int, min_span_len: int, augment_sample_weight: float
 ):
     for issue in issues:
         assert exists(
@@ -19,7 +19,9 @@ def get_kfold_span_frame_train_samples(
     fold2samples = [[] for _ in range(k)]
 
     for issue in tqdm(issues):
-        frame_span_data = load_json(join(FRAMING_DATA_DIR, f"{issue}_frame_spans.json"))
+        frame_span_data = load_json(
+            join(AUG_SINGLE_SPANS_DIR, f"{issue}_frame_spans_min{min_span_len}.json")
+        )
         kfold_data = load_json(join(FRAMING_DATA_DIR, f"{issue}_{k}_folds.json"))
 
         for ki, fold in enumerate(kfold_data["primary_frame"]):

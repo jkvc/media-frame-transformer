@@ -5,6 +5,7 @@ DATA_DIR = join(REPO_ROOT, "data")
 MODELS_DIR = join(REPO_ROOT, "models")
 
 FRAMING_DATA_DIR = join(DATA_DIR, "framing_labeled")
+AUG_SINGLE_SPANS_DIR = join(DATA_DIR, "aug_single_spans")
 
 ISSUES = [
     "climate",
