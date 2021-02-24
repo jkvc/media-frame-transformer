@@ -7,6 +7,7 @@ from config import ISSUES, MODELS_DIR
 
 from media_frame_transformer import models
 from media_frame_transformer.dataset import get_kfold_primary_frames_datasets
+from media_frame_transformer.eval import reduce_and_save_metrics
 from media_frame_transformer.learning import get_kfold_metrics, train
 from media_frame_transformer.utils import (
     mkdir_overwrite,
@@ -14,8 +15,8 @@ from media_frame_transformer.utils import (
     write_str_list_as_txt,
 )
 
-EXPERIMENT_NAME = "1.1.roberta_half.best"
-ARCH = "roberta_half"
+EXPERIMENT_NAME = "1.1.meddrop_half"
+ARCH = "roberta_meddrop_half"
 
 
 KFOLD = 8
@@ -65,35 +66,6 @@ def _train():
             write_str_list_as_txt(["."], join(save_fold_path, "_complete"))
 
 
-def _valid():
-    root_path = join(MODELS_DIR, EXPERIMENT_NAME)
-    assert exists(
-        root_path
-    ), f"{root_path} does not exist, choose the correct experiment name"
-
-    metrics_save_filepath = join(root_path, "metrics.csv")
-    assert not exists(metrics_save_filepath)
-
-    issue2metrics = {}
-    for issue in ISSUES:
-        print(issue)
-        issue_path = join(root_path, issue)
-
-        metrics = get_kfold_metrics(
-            [issue],
-            KFOLD,
-            issue_path,
-            valid_on_train_also=False,
-            zeroth_fold_only=ZEROTH_FOLD_ONLY,
-        )
-        issue2metrics[issue] = metrics
-
-    df = pd.DataFrame.from_dict(issue2metrics, orient="index")
-    df.loc["mean"] = df.mean()
-    print(df)
-    df.to_csv(metrics_save_filepath)
-
-
 if __name__ == "__main__":
-    _train()
-    _valid()
+    # _train()
+    reduce_and_save_metrics(join(MODELS_DIR, EXPERIMENT_NAME))

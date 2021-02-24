@@ -1,18 +1,18 @@
 from collections import defaultdict
-from os.path import join
+from os import mkdir
+from os.path import exists, join
 
 import pandas as pd
 from config import AUG_SINGLE_SPANS_DIR, FRAMING_DATA_DIR, ISSUES
 from tqdm import tqdm
-from transformers import RobertaTokenizerFast
 
 from media_frame_transformer.utils import load_json, save_json
 
-TOKENIZER = RobertaTokenizerFast.from_pretrained("roberta-base")
-
-MIN_SPAN_NUM_CHAR = 450
+MIN_SPAN_NUM_CHAR = 30
 
 if __name__ == "__main__":
+    if not exists(AUG_SINGLE_SPANS_DIR):
+        mkdir(AUG_SINGLE_SPANS_DIR)
 
     stats = {}
 

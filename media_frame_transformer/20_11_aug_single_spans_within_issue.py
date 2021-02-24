@@ -21,7 +21,7 @@ EXPERIMENT_NAME = "2.0.1.1.meddrop_half.w2.min150"
 ARCH = "roberta_meddrop_half"
 
 AUG_WEIGHT = 0.2
-MIN_SPAN_LEN = 450
+MIN_SPAN_LEN = 150
 
 KFOLD = 8
 FOLDS_TO_RUN = [0, 1, 2]

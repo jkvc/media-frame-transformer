@@ -75,6 +75,10 @@ def frame_code_to_idx(frame_float: float) -> int:
     return int(frame_float) - 1
 
 
+def label_idx_to_frame_code(idx: int) -> float:
+    return float(idx + 1)
+
+
 TOKENIZER = RobertaTokenizerFast.from_pretrained("roberta-base")
 
 
