@@ -18,8 +18,8 @@ from media_frame_transformer.eval import reduce_and_save_metrics
 from media_frame_transformer.learning import get_kfold_metrics, train
 from media_frame_transformer.utils import mkdir_overwrite, write_str_list_as_txt
 
-EXPERIMENT_NAME = "2.1.1.1.meddrop.w5.3x"
-ARCH = "roberta_meddrop"
+EXPERIMENT_NAME = "2.1.1.1.meddrop_half.w5.3x"
+ARCH = "roberta_meddrop_half"
 
 AUG_WEIGHT = 0.5
 AUG_SET_SIZE_MULTIPLIER = 3
@@ -27,7 +27,7 @@ AUG_SET_SIZE_MULTIPLIER = 3
 KFOLD = 8
 FOLDS_TO_RUN = [0, 1, 2]
 
-BATCHSIZE = 25
+BATCHSIZE = 50
 
 
 def _train():

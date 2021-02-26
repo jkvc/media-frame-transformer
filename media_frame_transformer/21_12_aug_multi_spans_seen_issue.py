@@ -16,6 +16,7 @@ from media_frame_transformer.dataset import (
     fold2split2samples_to_datasets,
     load_kfold_primary_frame_samples,
 )
+from media_frame_transformer.eval import reduce_and_save_metrics
 from media_frame_transformer.learning import get_kfold_metrics, train
 from media_frame_transformer.utils import mkdir_overwrite, write_str_list_as_txt
 
@@ -78,6 +79,8 @@ def _train():
 
 if __name__ == "__main__":
     _train()
+    reduce_and_save_metrics(join(MODELS_DIR, EXPERIMENT_NAME))
+
     # _valid_combined_issue()
     # _valid_individual_issue()
 
