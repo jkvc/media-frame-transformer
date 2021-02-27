@@ -15,19 +15,24 @@ from media_frame_transformer.dataset import (
     fold2split2samples_to_datasets,
     load_kfold_primary_frame_samples,
 )
+from media_frame_transformer.eval import reduce_and_save_metrics
 from media_frame_transformer.learning import get_kfold_metrics, train
 from media_frame_transformer.utils import mkdir_overwrite, write_str_list_as_txt
 
-EXPERIMENT_NAME = "2.0.1.2.meddrop_half.w2.min450"
-ARCH = "roberta_meddrop_half"
+# EXPERIMENT_NAME = "2.0.1.2.meddrop_half.w2.min150"
+# MIN_SPAN_LEN = 150
+# ARCH = "roberta_meddrop_half"
+# AUG_WEIGHT = 0.2
+# BATCHSIZE = 50
 
+EXPERIMENT_NAME = "2.0.1.2.meddrop.w2.min150"
+MIN_SPAN_LEN = 150
+ARCH = "roberta_meddrop"
 AUG_WEIGHT = 0.2
-MIN_SPAN_LEN = 450
+BATCHSIZE = 25
 
 FOLDS_TO_RUN = [0, 1, 2]
 KFOLD = 8
-
-BATCHSIZE = 50
 
 
 def _train():
@@ -76,6 +81,7 @@ def _train():
 
 if __name__ == "__main__":
     _train()
+    reduce_and_save_metrics(join(MODELS_DIR, EXPERIMENT_NAME))
     # _valid_combined_issue()
     # _valid_individual_issue()
 

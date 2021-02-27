@@ -17,11 +17,11 @@ from media_frame_transformer.eval import reduce_and_save_metrics
 from media_frame_transformer.learning import get_kfold_metrics, train
 from media_frame_transformer.utils import mkdir_overwrite, write_str_list_as_txt
 
-EXPERIMENT_NAME = "2.0.1.1.meddrop_half.w2.min450"
+EXPERIMENT_NAME = "2.0.1.1.meddrop_half.test"
 ARCH = "roberta_meddrop_half"
 
 AUG_WEIGHT = 0.2
-MIN_SPAN_LEN = 150
+MIN_SPAN_LEN = 450
 
 KFOLD = 8
 FOLDS_TO_RUN = [0, 1, 2]
