@@ -34,6 +34,24 @@ def clean_text(text):
     return text
 
 
+def load_all_primary_frame_samples(issues: List[str]) -> List[TextSample]:
+    samples = []
+    for issue in tqdm(issues):
+        train_set_ids = load_json(join(FRAMING_DATA_DIR, f"{issue}_train_sets.json"))[
+            "primary_frame"
+        ]
+        raw_data = load_json(join(FRAMING_DATA_DIR, f"{issue}_labeled.json"))
+        for id in train_set_ids:
+            samples.append(
+                TextSample(
+                    text=clean_text(raw_data[id]["text"]),
+                    code=raw_data[id]["primary_frame"],
+                    weight=1,
+                )
+            )
+    return samples
+
+
 def load_kfold_primary_frame_samples(
     issues: List[str], k: int
 ) -> List[Dict[str, List[TextSample]]]:

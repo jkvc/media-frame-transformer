@@ -1,5 +1,6 @@
 from collections import defaultdict
 from os.path import exists, join
+from typing import Dict
 
 import torch
 from torch.nn import functional as F
@@ -8,13 +9,17 @@ from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 from transformers import AdamW, AutoModelForSequenceClassification
 
-from media_frame_transformer.dataset import get_kfold_primary_frames_datasets
+from media_frame_transformer.dataset import (
+    PrimaryFrameDataset,
+    get_kfold_primary_frames_datasets,
+)
 from media_frame_transformer.utils import DEVICE, save_json
 
 N_DATALOADER_WORKER = 6
 TRAIN_BATCHSIZE = 25
 MAX_EPOCH = 15
 NUM_EARLY_STOP_NON_IMPROVE_EPOCH = 3
+VALID_BATCHSIZE = 150
 
 
 def train(
@@ -22,6 +27,7 @@ def train(
     train_dataset,
     valid_dataset,
     logdir,
+    additional_valid_datasets: Dict[str, PrimaryFrameDataset] = None,
     max_epochs=MAX_EPOCH,
     num_early_stop_non_improve_epoch=NUM_EARLY_STOP_NON_IMPROVE_EPOCH,
     batchsize=TRAIN_BATCHSIZE,
@@ -36,7 +42,7 @@ def train(
     )
     valid_loader = DataLoader(
         valid_dataset,
-        batch_size=batchsize,
+        batch_size=VALID_BATCHSIZE,
         shuffle=True,
         num_workers=n_dataloader_worker,
     )
@@ -70,7 +76,6 @@ def train(
             metrics["valid_acc"] = valid_acc
             model.save_pretrained(logdir)
             num_non_improve_epoch = 0
-            save_json(metrics, join(logdir, "leaf_metrics.json"))
         else:
             # not improving
             num_non_improve_epoch += 1
@@ -79,11 +84,32 @@ def train(
                 print(">> early stop")
                 break
 
-    save_json(metrics, join(logdir, "leaf_metrics.json"))
+        # additional valid
+        if additional_valid_datasets is not None:
+            for set_name, dataset in additional_valid_datasets.items():
+                set_valid_loader = DataLoader(
+                    dataset,
+                    batch_size=VALID_BATCHSIZE,
+                    shuffle=False,
+                    num_workers=n_dataloader_worker,
+                )
+                set_valid_acc, set_valid_loss = valid_epoch(
+                    model, set_valid_loader, writer, e, set_name
+                )
+                # append
+                metrics[f"{set_name}_loss"] = metrics.get(f"{set_name}_loss", []) + [
+                    set_valid_loss
+                ]
+                metrics[f"{set_name}_acc"] = metrics.get(f"{set_name}_acc", []) + [
+                    set_valid_acc
+                ]
+
+        save_json(metrics, join(logdir, "leaf_metrics.json"))
+
     writer.close()
 
 
-def valid_epoch(model, valid_loader, writer=None, epoch_idx=None):
+def valid_epoch(model, valid_loader, writer=None, epoch_idx=None, valid_set_name=None):
     model.eval()
     total_n_samples = 0
     total_n_correct = 0
@@ -108,10 +134,23 @@ def valid_epoch(model, valid_loader, writer=None, epoch_idx=None):
         valid_loss = (total_loss / total_n_samples).item()
 
         if writer is not None and epoch_idx is not None:
-            writer.add_scalar("valid acc", valid_acc, epoch_idx)
-            writer.add_scalar("valid loss", valid_loss, epoch_idx)
+            writer.add_scalar(
+                f"{valid_set_name if valid_set_name else 'valid'} acc",
+                valid_acc,
+                epoch_idx,
+            )
+            writer.add_scalar(
+                f"{valid_set_name if valid_set_name else 'valid'} loss",
+                valid_loss,
+                epoch_idx,
+            )
 
-    print(">> valid loss", round(valid_loss, 4), "valid acc", round(valid_acc, 4))
+    print(
+        f">> {valid_set_name if valid_set_name else 'valid'} loss",
+        round(valid_loss, 4),
+        f"{valid_set_name if valid_set_name else 'valid'} acc",
+        round(valid_acc, 4),
+    )
     return valid_acc, valid_loss
 
 
@@ -152,9 +191,6 @@ def train_epoch(model, optimizer, train_loader, writer=None, epoch_idx=None):
 
     print(">> train loss", round(loss, 4), "train acc", round(acc, 4))
     return acc, loss
-
-
-VALID_BATCHSIZE = 100
 
 
 def valid(

@@ -4,16 +4,21 @@ from os.path import exists, join
 from config import ISSUES, MODELS_DIR
 
 from media_frame_transformer import models
-from media_frame_transformer.dataset import load_kfold
+from media_frame_transformer.dataset import (
+    PrimaryFrameDataset,
+    get_kfold_primary_frames_datasets,
+    load_all_primary_frame_samples,
+)
+from media_frame_transformer.experiment_config import (
+    ARCH,
+    BATCHSIZE,
+    FOLDS_TO_RUN,
+    KFOLD,
+)
 from media_frame_transformer.learning import train
 from media_frame_transformer.utils import mkdir_overwrite, write_str_list_as_txt
 
-EXPERIMENT_NAME = "1.3.a"
-ARCH = "roberta_base_half"
-
-KFOLD = 8
-N_EPOCH = 8
-BATCHSIZE = 50
+EXPERIMENT_NAME = f"1.3.{ARCH}"
 
 
 if __name__ == "__main__":
@@ -31,8 +36,14 @@ if __name__ == "__main__":
         # train on all issues other than the holdout one
         train_issues = [iss for iss in ISSUES if iss != holdout_issue]
 
-        kfold_datasets = load_kfold(train_issues, "primary_frame", KFOLD)
+        kfold_datasets = get_kfold_primary_frames_datasets(train_issues, KFOLD)
+        holdout_issue_all_samples = load_all_primary_frame_samples([holdout_issue])
+        holdout_issue_dataset = PrimaryFrameDataset(holdout_issue_all_samples)
+
         for ki, datasets in enumerate(kfold_datasets):
+            if ki not in FOLDS_TO_RUN:
+                print(">> not running fold", ki)
+                continue
 
             # skip done
             save_fold_path = join(save_issue_path, f"fold_{ki}")
@@ -47,11 +58,11 @@ if __name__ == "__main__":
             model = models.get_model(ARCH)
             train(
                 model,
-                train_dataset,
-                valid_dataset,
-                save_fold_path,
-                N_EPOCH,
-                BATCHSIZE,
+                train_dataset=train_dataset,
+                valid_dataset=valid_dataset,
+                logdir=save_fold_path,
+                additional_valid_datasets={"holdout_issue": holdout_issue_dataset},
+                batchsize=BATCHSIZE,
             )
 
             # mark done
