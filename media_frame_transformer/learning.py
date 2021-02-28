@@ -122,7 +122,7 @@ def valid_epoch(model, valid_loader, writer=None, epoch_idx=None, valid_set_name
         for i, batch in enumerate(
             tqdm(
                 valid_loader,
-                desc=f"{epoch_idx if epoch_idx is not None else '?'}, valid",
+                desc=f"{epoch_idx if epoch_idx is not None else '?'}, {'valid' if valid_set_name is None else valid_set_name}",
             )
         ):
             xs, ys, _ = batch
