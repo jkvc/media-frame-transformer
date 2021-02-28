@@ -2,6 +2,7 @@ from collections import defaultdict
 from os import mkdir
 from os.path import exists, join
 from pprint import pprint
+from random import shuffle
 
 import numpy as np
 import pandas as pd
@@ -14,6 +15,12 @@ from media_frame_transformer.dataset import (
     load_kfold_primary_frame_samples,
 )
 from media_frame_transformer.eval import reduce_and_save_metrics
+from media_frame_transformer.experiment_config import (
+    ARCH,
+    BATCHSIZE,
+    FOLDS_TO_RUN,
+    KFOLD,
+)
 from media_frame_transformer.learning import get_kfold_metrics, train
 from media_frame_transformer.utils import (
     load_json,
@@ -22,14 +29,9 @@ from media_frame_transformer.utils import (
 )
 from media_frame_transformer.viualization import plot_series_w_labels
 
-EXPERIMENT_NAME = "3.0.1.2.meddrop_half"
-ARCH = "roberta_meddrop_half"
+EXPERIMENT_NAME = f"3012.{ARCH}"
 
 
-KFOLD = 8
-FOLDS_TO_RUN = [0, 1, 2, 3]
-
-BATCHSIZE = 50
 DATASET_SIZE_PROPS = [0.2, 0.4, 0.6, 0.8, 1.0]
 
 
@@ -51,6 +53,7 @@ def _train():
         for ki, split2samples in enumerate(fold2split2samples):
             num_train_samples = int(np.ceil(len(split2samples["train"]) * prop))
             print(">> prop", prop, "split", ki, "num train", num_train_samples)
+            shuffle(split2samples["train"])
             subsampled_fold2split2samples.append(
                 {
                     "valid": split2samples["valid"],
@@ -126,6 +129,6 @@ def _plot():
 
 
 if __name__ == "__main__":
-    # _train()
+    _train()
     reduce_and_save_metrics(join(MODELS_DIR, EXPERIMENT_NAME))
     _plot()
