@@ -46,6 +46,16 @@ def train(
         shuffle=True,
         num_workers=n_dataloader_worker,
     )
+    additional_valid_loaders = None
+    if additional_valid_datasets is not None:
+        additional_valid_loaders = {}
+        for name, dataset in additional_valid_datasets.items():
+            additional_valid_loaders[name] = DataLoader(
+                dataset,
+                batch_size=VALID_BATCHSIZE,
+                shuffle=False,
+                num_workers=n_dataloader_worker,
+            )
 
     model = model.to(DEVICE)
     optimizer = AdamW(model.parameters(), lr=1e-5)
@@ -85,14 +95,8 @@ def train(
                 break
 
         # additional valid
-        if additional_valid_datasets is not None:
-            for set_name, dataset in additional_valid_datasets.items():
-                set_valid_loader = DataLoader(
-                    dataset,
-                    batch_size=VALID_BATCHSIZE,
-                    shuffle=False,
-                    num_workers=n_dataloader_worker,
-                )
+        if additional_valid_loaders is not None:
+            for set_name, set_valid_loader in additional_valid_loaders.items():
                 set_valid_acc, set_valid_loss = valid_epoch(
                     model, set_valid_loader, writer, e, set_name
                 )
