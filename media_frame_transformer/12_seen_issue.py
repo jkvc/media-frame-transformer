@@ -49,8 +49,8 @@ def _train():
             model,
             train_dataset,
             valid_dataset,
-            save_fold,
-            BATCHSIZE,
+            logdir=save_fold,
+            batchsize=BATCHSIZE,
         )
 
         write_str_list_as_txt(["."], join(save_fold, "_complete"))
