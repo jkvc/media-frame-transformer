@@ -8,6 +8,7 @@ from config import ISSUES, MODELS_DIR
 from media_frame_transformer import models
 from media_frame_transformer.dataset import get_kfold_primary_frames_datasets
 from media_frame_transformer.eval import reduce_and_save_metrics
+from media_frame_transformer.experiment_config import ARCH, BATCHSIZE
 from media_frame_transformer.learning import get_kfold_metrics, train
 from media_frame_transformer.utils import (
     mkdir_overwrite,
@@ -15,13 +16,10 @@ from media_frame_transformer.utils import (
     write_str_list_as_txt,
 )
 
-EXPERIMENT_NAME = "1.1.meddrop_half"
-ARCH = "roberta_meddrop_half"
-
+EXPERIMENT_NAME = f"1.1.{ARCH}"
 
 KFOLD = 8
 ZEROTH_FOLD_ONLY = False
-BATCHSIZE = 50
 
 
 def _train():
@@ -41,8 +39,6 @@ def _train():
                 break
 
             save_fold_path = join(save_issue_path, f"fold_{ki}")
-            valid_config = {"arch": ARCH, "kfold": KFOLD, "ki": ki, "issues": [issue]}
-            save_json(valid_config, join(save_fold_path, "valid_config.json"))
 
             # skip done
             if exists(join(save_fold_path, "_complete")):
@@ -58,8 +54,9 @@ def _train():
                 model,
                 train_dataset,
                 valid_dataset,
-                save_fold_path,
-                BATCHSIZE,
+                logdir=save_fold_path,
+                batchsize=BATCHSIZE,
+                additional_valid_datasets={"test_valid": valid_dataset},
             )
 
             # mark done
@@ -67,5 +64,5 @@ def _train():
 
 
 if __name__ == "__main__":
-    # _train()
+    _train()
     reduce_and_save_metrics(join(MODELS_DIR, EXPERIMENT_NAME))

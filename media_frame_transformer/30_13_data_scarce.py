@@ -116,7 +116,7 @@ def _plot():
         for metricname, val in metrics[prop]["mean"].items():
             metricname2prop2val[metricname][prop] = val
     pprint(metricname2prop2val)
-    # acc and loss aggregated over all issues
+    # acc  aggregated over all issues
     acc_name2metrics = {}
     for metricname in ["train_acc", "valid_acc"]:
         prop2val = metricname2prop2val[metricname]
@@ -127,17 +127,6 @@ def _plot():
         acc_name2metrics,
         "accuracy v proportion of training data",
         join(MODELS_DIR, EXPERIMENT_NAME, "plot_accs.png"),
-    )
-    loss_name2metrics = {}
-    for metricname in ["train_loss", "valid_loss"]:
-        prop2val = metricname2prop2val[metricname]
-        props = sorted(list(prop2val.keys()))
-        vals = [prop2val[prop] for prop in props]
-        loss_name2metrics[metricname] = zip(props, vals)
-    plot_series_w_labels(
-        loss_name2metrics,
-        "loss v proportion of training data",
-        join(MODELS_DIR, EXPERIMENT_NAME, "plot_loss.png"),
     )
 
     # valid acc per issue
@@ -160,7 +149,7 @@ def _plot():
         join(MODELS_DIR, EXPERIMENT_NAME, "plot_issue_acc.png"),
     )
 
-    # valid loss per issue
+    # holdout_issue acc per issue
     issue2prop2val = defaultdict(dict)
     for prop in sorted(list(metrics.keys())):
         if prop == "mean":
@@ -168,20 +157,22 @@ def _plot():
         for issue in metrics[prop]:
             if issue == "mean":
                 continue
-            issue_mean_valid_loss = metrics[prop][issue]["mean"]["valid_loss"]
-            issue2prop2val[issue][prop] = issue_mean_valid_loss
-    validloss_issue2metrics = {
+            issue_mean_holdout_issue_acc = metrics[prop][issue]["mean"][
+                "holdout_issue_acc"
+            ]
+            issue2prop2val[issue][prop] = issue_mean_holdout_issue_acc
+    holdout_issueacc_issue2metrics = {
         issue: [(prop, val) for prop, val in prop2val.items()]
         for issue, prop2val in issue2prop2val.items()
     }
     plot_series_w_labels(
-        validloss_issue2metrics,
-        "valid loss per issue v prop of training data",
-        join(MODELS_DIR, EXPERIMENT_NAME, "plot_issue_loss.png"),
+        holdout_issueacc_issue2metrics,
+        "holdout_issue acc per issue v prop of training data",
+        join(MODELS_DIR, EXPERIMENT_NAME, "plot_holdout_issue_acc.png"),
     )
 
 
 if __name__ == "__main__":
-    _train()
+    # _train()
     reduce_and_save_metrics(join(MODELS_DIR, EXPERIMENT_NAME))
     _plot()

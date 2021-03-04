@@ -9,6 +9,7 @@ from media_frame_transformer.dataset import (
     get_kfold_primary_frames_datasets,
     load_all_primary_frame_samples,
 )
+from media_frame_transformer.eval import reduce_and_save_metrics
 from media_frame_transformer.experiment_config import (
     ARCH,
     BATCHSIZE,
@@ -21,7 +22,7 @@ from media_frame_transformer.utils import mkdir_overwrite, write_str_list_as_txt
 EXPERIMENT_NAME = f"1.3.{ARCH}"
 
 
-if __name__ == "__main__":
+def _train():
     save_root = join(MODELS_DIR, EXPERIMENT_NAME)
     if not exists(save_root):
         mkdir(save_root)
@@ -67,3 +68,8 @@ if __name__ == "__main__":
 
             # mark done
             write_str_list_as_txt(["."], join(save_fold_path, "_complete"))
+
+
+if __name__ == "__main__":
+    _train()
+    reduce_and_save_metrics(join(MODELS_DIR, EXPERIMENT_NAME))

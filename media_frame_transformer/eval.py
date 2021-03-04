@@ -100,7 +100,15 @@ def reduce_and_save_metrics(rootdir, leaf_metric_filename="leaf_metrics.json"):
         for i, child in enumerate(toks[:-1]):
             if child not in parent:
                 if i == len(toks) - 2:
-                    parent[child] = {"mean": load_json(p)}
+                    # FIXME
+                    # parent[child] = {"mean": load_json(p)}
+                    leaf_metrics = load_json(p)
+                    processed_leaf = {}
+                    for k, v in leaf_metrics.items():
+                        if isinstance(v, list):
+                            v = v[-1]
+                        processed_leaf[k] = v
+                    parent[child] = {"mean": processed_leaf}
                 else:
                     parent[child] = {}
             parent = parent[child]

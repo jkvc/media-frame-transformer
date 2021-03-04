@@ -79,8 +79,10 @@ def train(
 
         # valid
         valid_acc, valid_loss = valid_epoch(model, valid_loader, writer, e)
+
         if valid_loss < metrics["valid_loss"]:
             # new best, save stuff
+            is_this_epoch_valid_improve = True
             print(">> new best valid loss save checkpoint")
             metrics["valid_loss"] = valid_loss
             metrics["valid_acc"] = valid_acc
@@ -88,6 +90,7 @@ def train(
             num_non_improve_epoch = 0
         else:
             # not improving
+            is_this_epoch_valid_improve = False
             num_non_improve_epoch += 1
             print(">> not improved epoch", num_non_improve_epoch)
             if num_non_improve_epoch >= num_early_stop_non_improve_epoch:
@@ -100,13 +103,9 @@ def train(
                 set_valid_acc, set_valid_loss = valid_epoch(
                     model, set_valid_loader, writer, e, set_name
                 )
-                # append
-                metrics[f"{set_name}_loss"] = metrics.get(f"{set_name}_loss", []) + [
-                    set_valid_loss
-                ]
-                metrics[f"{set_name}_acc"] = metrics.get(f"{set_name}_acc", []) + [
-                    set_valid_acc
-                ]
+                if is_this_epoch_valid_improve:
+                    metrics[f"{set_name}_loss"] = set_valid_loss
+                    metrics[f"{set_name}_acc"] = set_valid_acc
 
         save_json(metrics, join(logdir, "leaf_metrics.json"))
 
