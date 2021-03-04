@@ -17,19 +17,19 @@ from media_frame_transformer.dataset import (
     load_kfold_primary_frame_samples,
 )
 from media_frame_transformer.eval import reduce_and_save_metrics
+from media_frame_transformer.experiment_config import (
+    ARCH,
+    BATCHSIZE,
+    FOLDS_TO_RUN,
+    KFOLD,
+)
 from media_frame_transformer.learning import get_kfold_metrics, train
 from media_frame_transformer.utils import mkdir_overwrite, write_str_list_as_txt
 
-ARCH = "roberta_meddrop"
 AUG_WEIGHT = 0.5
+AUG_SET_SIZE_MULTIPLIER = 3
 
-EXPERIMENT_NAME = "2.1.1.2.meddrop.w5.1x"
-AUG_SET_SIZE_MULTIPLIER = 1
-
-KFOLD = 8
-FOLDS_TO_RUN = [0, 1, 2]
-
-BATCHSIZE = 25
+EXPERIMENT_NAME = f"2112.{ARCH}.w{AUG_WEIGHT*10}.{AUG_SET_SIZE_MULTIPLIER}x"
 
 
 def _train():
