@@ -9,15 +9,16 @@ from config import ISSUES, MODELS_DIR
 from media_frame_transformer import models
 from media_frame_transformer.dataset import get_kfold_primary_frames_datasets
 from media_frame_transformer.eval import reduce_and_save_metrics
+from media_frame_transformer.experiment_config import (
+    ARCH,
+    BATCHSIZE,
+    FOLDS_TO_RUN,
+    KFOLD,
+)
 from media_frame_transformer.learning import get_kfold_metrics, train
 from media_frame_transformer.utils import mkdir_overwrite, write_str_list_as_txt
 
-EXPERIMENT_NAME = "1.2.meddrop_half"
-ARCH = "roberta_meddrop_half"
-
-KFOLD = 8
-FOLDS_TO_RUN = [0, 1, 2]
-BATCHSIZE = 50
+EXPERIMENT_NAME = f"1.2.{ARCH}"
 
 
 def _train():

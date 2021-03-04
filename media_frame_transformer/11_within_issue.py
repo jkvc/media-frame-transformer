@@ -8,7 +8,12 @@ from config import ISSUES, MODELS_DIR
 from media_frame_transformer import models
 from media_frame_transformer.dataset import get_kfold_primary_frames_datasets
 from media_frame_transformer.eval import reduce_and_save_metrics
-from media_frame_transformer.experiment_config import ARCH, BATCHSIZE
+from media_frame_transformer.experiment_config import (
+    ARCH,
+    BATCHSIZE,
+    FOLDS_TO_RUN,
+    KFOLD,
+)
 from media_frame_transformer.learning import get_kfold_metrics, train
 from media_frame_transformer.utils import (
     mkdir_overwrite,
@@ -17,9 +22,6 @@ from media_frame_transformer.utils import (
 )
 
 EXPERIMENT_NAME = f"1.1.{ARCH}"
-
-KFOLD = 8
-ZEROTH_FOLD_ONLY = False
 
 
 def _train():
@@ -35,8 +37,9 @@ def _train():
 
         kfold_datasets = get_kfold_primary_frames_datasets([issue], KFOLD)
         for ki, datasets in enumerate(kfold_datasets):
-            if ZEROTH_FOLD_ONLY and ki != 0:
-                break
+            if ki not in FOLDS_TO_RUN:
+                print(">> not running fold", ki)
+                continue
 
             save_fold_path = join(save_issue_path, f"fold_{ki}")
 
