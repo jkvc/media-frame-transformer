@@ -4,7 +4,7 @@ from typing import Dict, List, Literal
 
 import numpy as np
 import torch
-from config import FRAMING_DATA_DIR, ISSUES
+from config import DATA_DIR, FRAMING_DATA_DIR, ISSUES
 from torch.utils.data import DataLoader, Dataset, TensorDataset
 from tqdm import tqdm
 from transformers import PreTrainedTokenizerBase, RobertaTokenizer, RobertaTokenizerFast
@@ -20,6 +20,7 @@ PAD_TOK_IDX = 1
 class TextSample:
     text: str
     code: float
+    issue: str
     weight: float = 1
 
 
@@ -46,6 +47,7 @@ def load_all_primary_frame_samples(issues: List[str]) -> List[TextSample]:
                 TextSample(
                     text=clean_text(raw_data[id]["text"]),
                     code=raw_data[id]["primary_frame"],
+                    issue=issue,
                     weight=1,
                 )
             )
@@ -72,6 +74,7 @@ def load_kfold_primary_frame_samples(
                     TextSample(
                         text=clean_text(raw_data[id]["text"]),
                         code=raw_data[id]["primary_frame"],
+                        issue=issue,
                         weight=1,
                     )
                 )
@@ -80,6 +83,7 @@ def load_kfold_primary_frame_samples(
                     TextSample(
                         text=clean_text(raw_data[id]["text"]),
                         code=raw_data[id]["primary_frame"],
+                        issue=issue,
                         weight=1,
                     )
                 )
@@ -97,12 +101,21 @@ def label_idx_to_frame_code(idx: int) -> float:
     return float(idx + 1)
 
 
+def get_issue2labelprop():
+    distr = load_json(join(DATA_DIR, "label_distributions.json"))
+    issue2labelprop = {
+        issue: np.array(props) for issue, props in distr["props"].items()
+    }
+    return issue2labelprop
+
+
 TOKENIZER = RobertaTokenizerFast.from_pretrained("roberta-base")
 
 
 class PrimaryFrameDataset(Dataset):
     def __init__(self, samples: List[TextSample]):
         self.samples: List[TextSample] = samples
+        self.issue2labelprop = get_issue2labelprop()
 
     def __len__(self):
         return len(self.samples)
@@ -122,6 +135,7 @@ class PrimaryFrameDataset(Dataset):
             "x": x,
             "y": y,
             "weight": sample.weight,
+            "label_props": self.issue2labelprop[sample.issue],
         }
 
 
@@ -144,7 +158,7 @@ def fold2split2samples_to_datasets(fold2split2samples):
 
 
 if __name__ == "__main__":
-    fold2split2samples = load_kfold_primary_frame_samples(["climate"], 8)
+    fold2split2samples = load_kfold_primary_frame_samples(["climate", "tobacco"], 8)
     for ki, split2samples in enumerate(fold2split2samples):
         train_samples = split2samples["train"]
         train_ds = PrimaryFrameDataset(train_samples)
