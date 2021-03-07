@@ -57,7 +57,11 @@ def _train():
 
                 path2datasets[
                     join(
-                        MODELS_DIR, EXPERIMENT_NAME, issue, f"fold_{ki}", str(numsample)
+                        MODELS_DIR,
+                        EXPERIMENT_NAME,
+                        issue,
+                        f"fold_{ki}",
+                        f"{numsample:04}",
                     )
                 ] = {
                     "train": train_dataset,
