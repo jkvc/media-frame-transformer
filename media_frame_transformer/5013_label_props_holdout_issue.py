@@ -45,7 +45,6 @@ def _train():
                 "valid": kfold_datasets[ki]["valid"],
                 "additional_valid_datasets": {"holdout_issue": holdout_issue_dataset},
             }
-        break
     run_experiments(arch, path2datasets, batchsize=BATCHSIZE)
 
 
