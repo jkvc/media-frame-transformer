@@ -16,6 +16,7 @@ from media_frame_transformer.experiment_config import (
     FOLDS_TO_RUN,
     KFOLD,
 )
+from media_frame_transformer.experiments import run_experiments
 from media_frame_transformer.learning import train
 from media_frame_transformer.utils import mkdir_overwrite, write_str_list_as_txt
 
@@ -23,17 +24,10 @@ EXPERIMENT_NAME = f"1.3.{ARCH}"
 
 
 def _train():
-    save_root = join(MODELS_DIR, EXPERIMENT_NAME)
-    if not exists(save_root):
-        mkdir(save_root)
+    path2datasets = {}
 
     for holdout_issue in ISSUES:
         model_name = f"holdout_{holdout_issue}"
-        print(model_name)
-        save_issue_path = join(save_root, model_name)
-        if not exists(save_issue_path):
-            mkdir(save_issue_path)
-
         # train on all issues other than the holdout one
         train_issues = [iss for iss in ISSUES if iss != holdout_issue]
 
@@ -41,33 +35,15 @@ def _train():
         holdout_issue_all_samples = load_all_primary_frame_samples([holdout_issue])
         holdout_issue_dataset = PrimaryFrameDataset(holdout_issue_all_samples)
 
-        for ki, datasets in enumerate(kfold_datasets):
-            if ki not in FOLDS_TO_RUN:
-                print(">> not running fold", ki)
-                continue
-
-            # skip done
-            save_fold_path = join(save_issue_path, f"fold_{ki}")
-            if exists(join(save_fold_path, "_complete")):
-                print(">> skip", ki)
-                continue
-            mkdir_overwrite(save_fold_path)
-
-            train_dataset = datasets["train"]
-            valid_dataset = datasets["valid"]
-
-            model = models.get_model(ARCH)
-            train(
-                model,
-                train_dataset=train_dataset,
-                valid_dataset=valid_dataset,
-                logdir=save_fold_path,
-                additional_valid_datasets={"holdout_issue": holdout_issue_dataset},
-                batchsize=BATCHSIZE,
-            )
-
-            # mark done
-            write_str_list_as_txt(["."], join(save_fold_path, "_complete"))
+        for ki in FOLDS_TO_RUN:
+            path2datasets[
+                join(MODELS_DIR, EXPERIMENT_NAME, model_name, f"fold_{ki}")
+            ] = {
+                "train": kfold_datasets[ki]["train"],
+                "valid": kfold_datasets[ki]["valid"],
+                "additional_valid_datasets": {"holdout_issue": holdout_issue_dataset},
+            }
+    run_experiments(ARCH, path2datasets, batchsize=BATCHSIZE)
 
 
 if __name__ == "__main__":

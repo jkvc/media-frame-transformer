@@ -1,12 +1,7 @@
-from os import mkdir
-from os.path import exists, join
+from os.path import join
 
-import pandas as pd
-import torch
-import torch.nn as nn
 from config import ISSUES, MODELS_DIR
 
-from media_frame_transformer import models
 from media_frame_transformer.dataset import get_kfold_primary_frames_datasets
 from media_frame_transformer.eval import reduce_and_save_metrics
 from media_frame_transformer.experiment_config import (
@@ -15,45 +10,19 @@ from media_frame_transformer.experiment_config import (
     FOLDS_TO_RUN,
     KFOLD,
 )
-from media_frame_transformer.learning import get_kfold_metrics, train
-from media_frame_transformer.utils import mkdir_overwrite, write_str_list_as_txt
+from media_frame_transformer.experiments import run_experiments
 
 EXPERIMENT_NAME = f"1.2.{ARCH}"
 
 
 def _train():
-    save_root = join(MODELS_DIR, EXPERIMENT_NAME)
-    if not exists(save_root):
-        mkdir(save_root)
-
+    path2datasets = {}
     kfold_datasets = get_kfold_primary_frames_datasets(ISSUES, KFOLD)
-    for ki, datasets in enumerate(kfold_datasets):
-        if ki not in FOLDS_TO_RUN:
-            print(">> not running fold", ki)
-            continue
-
-        save_fold = join(save_root, f"fold_{ki}")
-        if exists(join(save_fold, "_complete")):
-            print(">> skip", ki)
-            continue
-        mkdir_overwrite(save_fold)
-
-        train_dataset = datasets["train"]
-        valid_dataset = datasets["valid"]
-
-        model = models.get_model(ARCH)
-        if torch.cuda.device_count() > 1:
-            model = nn.DataParallel(model)
-
-        train(
-            model,
-            train_dataset,
-            valid_dataset,
-            logdir=save_fold,
-            batchsize=BATCHSIZE,
-        )
-
-        write_str_list_as_txt(["."], join(save_fold, "_complete"))
+    for ki in FOLDS_TO_RUN:
+        path2datasets[join(MODELS_DIR, EXPERIMENT_NAME, f"fold_{ki}")] = kfold_datasets[
+            ki
+        ]
+    run_experiments(ARCH, path2datasets, batchsize=BATCHSIZE)
 
 
 # def _valid_combined_issue():

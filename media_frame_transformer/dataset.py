@@ -118,7 +118,11 @@ class PrimaryFrameDataset(Dataset):
             )
         )
         y = frame_code_to_idx(sample.code)
-        return (x, y, sample.weight)
+        return {
+            "x": x,
+            "y": y,
+            "weight": sample.weight,
+        }
 
 
 def get_kfold_primary_frames_datasets(

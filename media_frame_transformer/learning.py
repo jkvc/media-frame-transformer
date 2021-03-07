@@ -16,7 +16,7 @@ from media_frame_transformer.dataset import (
 from media_frame_transformer.utils import DEVICE, save_json
 
 N_DATALOADER_WORKER = 6
-TRAIN_BATCHSIZE = 25
+TRAIN_BATCHSIZE = 50
 MAX_EPOCH = 15
 NUM_EARLY_STOP_NON_IMPROVE_EPOCH = 3
 VALID_BATCHSIZE = 150
@@ -86,8 +86,8 @@ def train(
             print(">> new best valid loss save checkpoint")
             metrics["valid_loss"] = valid_loss
             metrics["valid_acc"] = valid_acc
-            model.save_pretrained(logdir)
             num_non_improve_epoch = 0
+            torch.save(model, join(logdir, "checkpoint.pth"))
         else:
             # not improving
             is_this_epoch_valid_improve = False
@@ -124,14 +124,13 @@ def valid_epoch(model, valid_loader, writer=None, epoch_idx=None, valid_set_name
                 desc=f"{epoch_idx if epoch_idx is not None else '?'}, {'valid' if valid_set_name is None else valid_set_name}",
             )
         ):
-            xs, ys, _ = batch
-            xs, ys = xs.to(DEVICE), ys.to(DEVICE)
-            outputs = model(xs)
-            loss = F.cross_entropy(outputs.logits, ys, reduction="sum")
+            outputs = model(batch)
+            loss = outputs["loss"]
             total_loss += loss
-            is_correct = torch.argmax(outputs.logits, dim=-1) == ys
+
+            is_correct = outputs["is_correct"]
             total_n_correct += is_correct.sum()
-            total_n_samples += ys.shape[0]
+            total_n_samples += is_correct.shape[0]
 
         valid_acc = (total_n_correct / total_n_samples).item()
         valid_loss = (total_loss / total_n_samples).item()
@@ -164,20 +163,17 @@ def train_epoch(model, optimizer, train_loader, writer=None, epoch_idx=None):
     for i, batch in enumerate(
         tqdm(train_loader, desc=f"{epoch_idx if epoch_idx is not None else '?'}, train")
     ):
-        xs, ys, weights = batch
-        xs, ys, weights = xs.to(DEVICE), ys.to(DEVICE), weights.to(DEVICE)
-
         optimizer.zero_grad()
-        outputs = model(xs)
-        loss = F.cross_entropy(outputs.logits, ys, reduction="none")
-        loss = loss * weights
-        loss = loss.mean()
+        outputs = model(batch)
+
+        loss = outputs["loss"]
         loss.backward()
         optimizer.step()
 
-        is_correct = torch.argmax(outputs.logits, dim=-1) == ys
+        is_correct = outputs["is_correct"]
         num_correct = is_correct.sum()
-        train_acc = num_correct / ys.shape[0]
+        num_samples = is_correct.shape[0]
+        train_acc = num_correct / num_samples
 
         if writer is not None and epoch_idx is not None:
             # tensorboard
@@ -185,8 +181,8 @@ def train_epoch(model, optimizer, train_loader, writer=None, epoch_idx=None):
             writer.add_scalar("train loss", loss.item(), step_idx)
             writer.add_scalar("train acc", train_acc, step_idx)
 
-        total_n_samples += ys.shape[0]
-        total_loss += (loss * ys.shape[0]).item()
+        total_n_samples += num_samples
+        total_loss += (loss * num_samples).item()
         total_n_correct += num_correct
 
     acc = (total_n_correct / total_n_samples).item()
