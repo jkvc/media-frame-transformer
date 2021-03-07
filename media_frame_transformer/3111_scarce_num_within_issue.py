@@ -37,7 +37,7 @@ DATASET_SIZES = [250, 500, 1000, 1750, 2500, 4000, 6000]
 
 
 def _train():
-    # root/issue/fold/numsample
+    # root/issue/numsample/fold
     path2datasets = {}
 
     for issue in ISSUES:
@@ -60,8 +60,8 @@ def _train():
                         MODELS_DIR,
                         EXPERIMENT_NAME,
                         issue,
-                        f"fold_{ki}",
                         f"{numsample:04}",
+                        f"fold_{ki}",
                     )
                 ] = {
                     "train": train_dataset,
