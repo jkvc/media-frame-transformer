@@ -89,6 +89,11 @@ def roberta_meddrop():
     return RobertaWithLabelProps(dropout=0.15)
 
 
+@register_model("roberta_meddrop_half_labelprops")
+def roberta_meddrop():
+    return _freeze_roberta_top_n_layers(RobertaWithLabelProps(dropout=0.15))
+
+
 class RobertaWithLabelProps(nn.Module):
     def __init__(self, dropout=0.1, n_class=15):
         super(RobertaWithLabelProps, self).__init__()
