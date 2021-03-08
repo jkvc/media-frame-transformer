@@ -165,13 +165,14 @@ def roberta_meddrop_half_issuesup_subframesup():
 
 
 class RobertaWithLabelProps(nn.Module):
-    def __init__(self, dropout=0.1, n_class=15):
+    def __init__(self, dropout=0.1, n_class=15, labelprop_hidden=50):
         super(RobertaWithLabelProps, self).__init__()
-        self.label_prop_intake = nn.Linear(n_class, n_class)
         self.roberta = RobertaModel.from_pretrained("roberta-base")
         self.dropout = nn.Dropout(p=dropout)
+
         self.dense1 = nn.Linear(768, 768)
-        self.dense2 = nn.Linear(768 + n_class, 768)
+        self.label_prop_intake = nn.Linear(n_class, labelprop_hidden)
+        self.dense2 = nn.Linear(768 + labelprop_hidden, 768)
         self.out_proj = nn.Linear(768, n_class)
         self.loss = nn.CrossEntropyLoss(reduction="none")
 
@@ -179,7 +180,6 @@ class RobertaWithLabelProps(nn.Module):
         x = batch["x"].to(DEVICE)
         x = self.roberta(x)
         x = x[0]
-        x = self.dropout(x)
         x = x[:, 0, :]  # the <s> tokens, i.e. <CLS>
         x = self.dropout(x)  # (b, 768)
         x = self.dense1(x)
@@ -188,7 +188,7 @@ class RobertaWithLabelProps(nn.Module):
 
         label_props = batch["label_props"].to(DEVICE).to(torch.float)
         label_props = self.label_prop_intake(label_props)
-        label_props = torch.relu(label_props)  # (b, nclass)
+        label_props = torch.tanh(label_props)  # (b, labelprop_hidden)
 
         x = torch.cat([x, label_props], dim=1)
         x = self.dense2(x)

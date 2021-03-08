@@ -20,7 +20,7 @@ from media_frame_transformer.experiments import run_experiments
 from media_frame_transformer.learning import train
 from media_frame_transformer.utils import mkdir_overwrite, write_str_list_as_txt
 
-EXPERIMENT_NAME = f"1.3.{ARCH}"
+EXPERIMENT_NAME = f"13.{ARCH}"
 
 
 def _train():
