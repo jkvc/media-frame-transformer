@@ -84,6 +84,63 @@ class RobertaSimpleClassifier(nn.Module):
         }
 
 
+@register_model("roberta_meddrop_issuesup")
+def roberta_meddrop_issuesup():
+    model = RobertaWithIssueSupervision(dropout=0.15)
+    return model
+
+
+@register_model("roberta_meddrop_half_issuesup")
+def roberta_meddrop_half_issuesup():
+    model = RobertaWithIssueSupervision(dropout=0.15)
+    model = _freeze_roberta_top_n_layers(model, 6)
+    return model
+
+
+class RobertaWithIssueSupervision(nn.Module):
+    def __init__(self, dropout=0.1, n_class=15):
+        super(RobertaWithIssueSupervision, self).__init__()
+        self.roberta = RobertaModel.from_pretrained("roberta-base")
+        self.dropout = nn.Dropout(p=dropout)
+        self.dense = nn.Linear(768, 768)
+        self.out_proj = nn.Linear(768, n_class)
+        self.issue_proj = nn.Linear(768, 6)
+        self.loss = nn.CrossEntropyLoss(reduction="none")
+
+    def forward(self, batch):
+        x = batch["x"].to(DEVICE)
+        x = self.roberta(x)
+        x = x[0]
+        x = self.dropout(x)
+        cls_emb = x[:, 0, :]  # the <s> tokens, i.e. <CLS>
+        cls_emb = self.dropout(cls_emb)
+
+        frame_out = self.dense(cls_emb)
+        frame_out = torch.tanh(frame_out)
+        frame_out = self.dropout(frame_out)
+        frame_out = self.out_proj(frame_out)
+
+        issue_out = self.issue_proj(cls_emb)
+
+        y = batch["y"].to(DEVICE)
+
+        frame_loss = self.loss(frame_out, y)
+        loss_weight = batch["weight"].to(DEVICE)
+        frame_loss = (frame_loss * loss_weight).mean()
+
+        issue_idx = batch["issue_idx"].to(DEVICE)
+        issue_loss = self.loss(issue_out, issue_idx)
+        issue_loss = (issue_loss * loss_weight).mean()
+
+        loss = frame_loss + issue_loss
+
+        return {
+            "logits": x,
+            "loss": loss,
+            "is_correct": torch.argmax(frame_out, dim=-1) == y,
+        }
+
+
 @register_model("roberta_meddrop_labelprops")
 def roberta_meddrop_labelprops():
     return RobertaWithLabelProps(dropout=0.15)
