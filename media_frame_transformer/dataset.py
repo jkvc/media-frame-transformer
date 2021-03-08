@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from os.path import exists, join
-from typing import Dict, List, Literal
+from typing import Dict, List, Literal, Set
 
 import numpy as np
 import torch
@@ -21,6 +21,7 @@ class TextSample:
     text: str
     code: float
     issue: str
+    subframes: Set[int]
     weight: float = 1
 
 
@@ -69,24 +70,23 @@ def load_kfold_primary_frame_samples(
         kfold_data = load_json(join(FRAMING_DATA_DIR, f"{issue}_{k}_folds.json"))
 
         for ki, fold in enumerate(kfold_data["primary_frame"]):
-            for id in fold["train"]:
-                fold2split2samples[ki]["train"].append(
-                    TextSample(
-                        text=clean_text(raw_data[id]["text"]),
-                        code=raw_data[id]["primary_frame"],
-                        issue=issue,
-                        weight=1,
+            for split in ["train", "valid"]:
+                for id in fold[split]:
+                    item = raw_data[id]
+                    subframes = set(
+                        frame_code_to_idx(span["code"])
+                        for spans in item["annotations"]["framing"].values()
+                        for span in spans
                     )
-                )
-            for id in fold["valid"]:
-                fold2split2samples[ki]["valid"].append(
-                    TextSample(
-                        text=clean_text(raw_data[id]["text"]),
-                        code=raw_data[id]["primary_frame"],
-                        issue=issue,
-                        weight=1,
+                    fold2split2samples[ki][split].append(
+                        TextSample(
+                            text=clean_text(item["text"]),
+                            code=item["primary_frame"],
+                            issue=issue,
+                            subframes=subframes,
+                            weight=1,
+                        )
                     )
-                )
     return fold2split2samples
 
 
@@ -138,10 +138,14 @@ class PrimaryFrameDataset(Dataset):
             )
         )
         y = frame_code_to_idx(sample.code)
+        subframes = np.zeros((15,))
+        for i in sample.subframes:
+            subframes[i] = 1
         return {
             "x": x,
             "y": y,
             "weight": sample.weight,
+            "subframes": subframes,
             "label_props": self.issue2labelprop[sample.issue],
             "issue_idx": self.issue2idx[sample.issue],
         }

@@ -166,7 +166,7 @@ def train_epoch(model, optimizer, train_loader, writer=None, epoch_idx=None):
         optimizer.zero_grad()
         outputs = model(batch)
 
-        loss = outputs["loss"]
+        loss = outputs["loss_to_backward"]
         loss.backward()
         optimizer.step()
 
