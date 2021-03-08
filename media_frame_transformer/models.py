@@ -85,12 +85,12 @@ class RobertaSimpleClassifier(nn.Module):
 
 
 @register_model("roberta_meddrop_labelprops")
-def roberta_meddrop():
+def roberta_meddrop_labelprops():
     return RobertaWithLabelProps(dropout=0.15)
 
 
 @register_model("roberta_meddrop_half_labelprops")
-def roberta_meddrop():
+def roberta_meddrop_half_labelprops():
     return _freeze_roberta_top_n_layers(RobertaWithLabelProps(dropout=0.15), 6)
 
 
