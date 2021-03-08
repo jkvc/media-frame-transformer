@@ -12,7 +12,7 @@ from media_frame_transformer.experiment_config import (
 )
 from media_frame_transformer.experiments import run_experiments
 
-EXPERIMENT_NAME = f"1.2.{ARCH}"
+EXPERIMENT_NAME = f"12.{ARCH}"
 
 
 def _train():

@@ -1,9 +1,7 @@
-from os import mkdir
-from os.path import exists, join
+from os.path import join
 
 from config import ISSUES, MODELS_DIR
 
-from media_frame_transformer import models
 from media_frame_transformer.dataset import (
     PrimaryFrameDataset,
     get_kfold_primary_frames_datasets,
@@ -17,8 +15,6 @@ from media_frame_transformer.experiment_config import (
     KFOLD,
 )
 from media_frame_transformer.experiments import run_experiments
-from media_frame_transformer.learning import train
-from media_frame_transformer.utils import mkdir_overwrite, write_str_list_as_txt
 
 EXPERIMENT_NAME = f"13.{ARCH}"
 

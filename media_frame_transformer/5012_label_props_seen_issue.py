@@ -12,19 +12,18 @@ from media_frame_transformer.experiment_config import (
 )
 from media_frame_transformer.experiments import run_experiments
 
-EXPERIMENT_NAME = f"11.{ARCH}"
+arch = f"{ARCH}_labelprops"
+EXPERIMENT_NAME = f"5012.{arch}"
 
 
 def _train():
     path2datasets = {}
-    for issue in ISSUES:
-        kfold_datasets = get_kfold_primary_frames_datasets([issue], KFOLD)
-        for ki in FOLDS_TO_RUN:
-            datasets = kfold_datasets[ki]
-            path2datasets[
-                join(MODELS_DIR, EXPERIMENT_NAME, issue, f"fold_{ki}")
-            ] = datasets
-    run_experiments(ARCH, path2datasets, batchsize=BATCHSIZE)
+    kfold_datasets = get_kfold_primary_frames_datasets(ISSUES, KFOLD)
+    for ki in FOLDS_TO_RUN:
+        path2datasets[join(MODELS_DIR, EXPERIMENT_NAME, f"fold_{ki}")] = kfold_datasets[
+            ki
+        ]
+    run_experiments(arch, path2datasets, batchsize=BATCHSIZE)
 
 
 if __name__ == "__main__":
