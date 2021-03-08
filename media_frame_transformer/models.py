@@ -170,7 +170,8 @@ class RobertaWithLabelProps(nn.Module):
         self.label_prop_intake = nn.Linear(n_class, n_class)
         self.roberta = RobertaModel.from_pretrained("roberta-base")
         self.dropout = nn.Dropout(p=dropout)
-        self.dense = nn.Linear(768 + n_class, 768)
+        self.dense1 = nn.Linear(768, 768)
+        self.dense2 = nn.Linear(768 + n_class, 768)
         self.out_proj = nn.Linear(768, n_class)
         self.loss = nn.CrossEntropyLoss(reduction="none")
 
@@ -181,13 +182,16 @@ class RobertaWithLabelProps(nn.Module):
         x = self.dropout(x)
         x = x[:, 0, :]  # the <s> tokens, i.e. <CLS>
         x = self.dropout(x)  # (b, 768)
+        x = self.dense1(x)
+        x = torch.tanh(x)
+        x = self.dropout(x)
 
         label_props = batch["label_props"].to(DEVICE).to(torch.float)
         label_props = self.label_prop_intake(label_props)
         label_props = torch.relu(label_props)  # (b, nclass)
 
         x = torch.cat([x, label_props], dim=1)
-        x = self.dense(x)
+        x = self.dense2(x)
         x = torch.tanh(x)
         x = self.dropout(x)
         x = self.out_proj(x)

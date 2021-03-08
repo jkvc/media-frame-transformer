@@ -44,11 +44,18 @@ def load_all_primary_frame_samples(issues: List[str]) -> List[TextSample]:
         ]
         raw_data = load_json(join(FRAMING_DATA_DIR, f"{issue}_labeled.json"))
         for id in train_set_ids:
+            item = raw_data[id]
+            subframes = set(
+                frame_code_to_idx(span["code"])
+                for spans in item["annotations"]["framing"].values()
+                for span in spans
+            )
             samples.append(
                 TextSample(
                     text=clean_text(raw_data[id]["text"]),
                     code=raw_data[id]["primary_frame"],
                     issue=issue,
+                    subframes=subframes,
                     weight=1,
                 )
             )
