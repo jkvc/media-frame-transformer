@@ -1,3 +1,4 @@
+import sys
 from os.path import join
 
 from config import ISSUES, MODELS_DIR
@@ -16,7 +17,9 @@ from media_frame_transformer.experiment_config import (
 )
 from media_frame_transformer.experiments import run_experiments
 
-EXPERIMENT_NAME = f"13.{ARCH}"
+TASK = sys.argv[1]
+_arch = f"{ARCH}.{TASK}"
+EXPERIMENT_NAME = f"13.{_arch}"
 
 
 def _train():
@@ -39,7 +42,7 @@ def _train():
                 "valid": kfold_datasets[ki]["valid"],
                 "additional_valid_datasets": {"holdout_issue": holdout_issue_dataset},
             }
-    run_experiments(ARCH, path2datasets, batchsize=BATCHSIZE)
+    run_experiments(_arch, path2datasets, batchsize=BATCHSIZE)
 
 
 if __name__ == "__main__":
