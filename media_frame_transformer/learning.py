@@ -81,12 +81,12 @@ def train(
 
         # valid
         valid_metrics = valid_epoch(model, valid_loader, writer, e)
-        valid_loss = valid_metrics["loss"]
+        valid_acc = valid_metrics["acc"]
 
-        if valid_loss < metrics["valid_loss"]:
+        if valid_acc > metrics["valid_acc"]:
             # new best, save stuff
             is_this_epoch_valid_improve = True
-            print("++ new best valid loss save checkpoint")
+            print("++ new best valid acc save checkpoint")
             for k, v in valid_metrics.items():
                 metrics[f"valid_{k}"] = v
             num_non_improve_epoch = 0
