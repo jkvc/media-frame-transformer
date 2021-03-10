@@ -103,12 +103,12 @@ def train(
         # additional valid
         if additional_valid_loaders is not None:
             for set_name, set_valid_loader in additional_valid_loaders.items():
-                set_valid_acc, set_valid_loss = valid_epoch(
+                additional_valid_metrics = valid_epoch(
                     model, set_valid_loader, writer, e, set_name
                 )
                 if is_this_epoch_valid_improve:
-                    metrics[f"{set_name}_loss"] = set_valid_loss
-                    metrics[f"{set_name}_acc"] = set_valid_acc
+                    for k, v in additional_valid_metrics.items():
+                        metrics[f"{set_name}_{k}"] = v
 
         save_json(metrics, join(logdir, "leaf_metrics.json"))
 
