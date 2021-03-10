@@ -37,13 +37,16 @@ class RobertaFrameClassifier(nn.Module):
         self,
         dropout=0.1,
         n_class=15,
+        task="classification",
         issue_supervision=False,
         subframe_supervision=False,
     ):
         super(RobertaFrameClassifier, self).__init__()
+        self.task = task
+        assert task in ["classification", "retrieval"]
+
         self.roberta = RobertaModel.from_pretrained("roberta-base")
         self.dropout = nn.Dropout(p=dropout)
-
         self.frame_ff = nn.Sequential(
             nn.Linear(768, 768),
             nn.Tanh(),
@@ -76,15 +79,23 @@ class RobertaFrameClassifier(nn.Module):
         cls_emb = self.dropout(cls_emb)
 
         frame_out = self.frame_ff(cls_emb)
-        frame_idx = batch["y"].to(DEVICE)
-        frame_loss = F.cross_entropy(frame_out, frame_idx, reduction="none")
-        loss_to_backward = frame_loss
+        if self.task == "classification":
+            labels = batch["primary_frame"].to(DEVICE)
+            frame_loss = F.cross_entropy(frame_out, labels, reduction="none")
+            loss = frame_loss
+        elif self.task == "retrieval":
+            labels = batch["retrieval"].to(DEVICE)
+            frame_loss = F.binary_cross_entropy_with_logits(
+                frame_out, labels, reduction="none"
+            )
+            frame_loss = frame_loss.mean(dim=-1)
+            loss = frame_loss
 
         if self.issue_supervision:
             issue_out = self.issue_ff(cls_emb)
             issue_idx = batch["issue_idx"].to(DEVICE)
             issue_loss = F.cross_entropy(issue_out, issue_idx, reduction="none")
-            loss_to_backward = loss_to_backward + issue_loss
+            loss = loss + issue_loss
         if self.subframe_supervision:
             subframe_out = self.subframe_ff(cls_emb)
             subframes = batch["subframes"].to(DEVICE).to(torch.float)
@@ -92,17 +103,15 @@ class RobertaFrameClassifier(nn.Module):
                 subframe_out, subframes, reduction="none"
             )  # (b, 15)
             subframe_loss = subframe_loss.mean(dim=-1)  # (b,)
-            loss_to_backward = loss_to_backward + subframe_loss
+            loss = loss + subframe_loss
 
         loss_weight = batch["weight"].to(DEVICE)
-        loss_to_backward = (loss_to_backward * loss_weight).mean()
-        loss = (frame_loss * loss_weight).mean()
+        loss = (loss * loss_weight).mean()
 
         return {
             "logits": frame_out,
-            "loss_to_backward": loss_to_backward,
             "loss": loss,
-            "is_correct": torch.argmax(frame_out, dim=-1) == frame_idx,
+            "labels": labels,
         }
 
 
@@ -119,6 +128,18 @@ def roberta_meddrop():
 @register_model("roberta_meddrop_half")
 def roberta_meddrop_half():
     return _freeze_roberta_top_n_layers(roberta_meddrop(), 6)
+
+
+@register_model("roberta_meddrop_retrieval")
+def roberta_meddrop_retrieval():
+    return RobertaFrameClassifier(dropout=0.15, task="retrieval")
+
+
+@register_model("roberta_meddrop_half_retrieval")
+def roberta_meddrop_half_retrieval():
+    return _freeze_roberta_top_n_layers(
+        RobertaFrameClassifier(dropout=0.15, task="retrieval"), 6
+    )
 
 
 @register_model("roberta_meddrop_issuesup")

@@ -5,7 +5,7 @@ from typing import Dict
 
 import numpy as np
 import torch
-from sklearn.metrics import f1_score, roc_auc_score
+from sklearn.metrics import f1_score, precision_score, recall_score
 from torch.nn import functional as F
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
@@ -17,7 +17,7 @@ from media_frame_transformer.utils import DEVICE, save_json
 
 N_DATALOADER_WORKER = 6
 TRAIN_BATCHSIZE = 50
-MAX_EPOCH = 15
+MAX_EPOCH = 30
 NUM_EARLY_STOP_NON_IMPROVE_EPOCH = 3
 VALID_BATCHSIZE = 150
 
@@ -64,10 +64,10 @@ def train(
     # lowest_valid_loss = float("inf")
 
     metrics = {
-        "train_acc": 0,
+        # "train_acc": 0,
         "train_loss": float("inf"),
         "train_f1": 0,
-        "valid_acc": 0,
+        # "valid_acc": 0,
         "valid_loss": float("inf"),
         "valid_f1": 0,
     }
@@ -81,12 +81,12 @@ def train(
 
         # valid
         valid_metrics = valid_epoch(model, valid_loader, writer, e)
-        valid_acc = valid_metrics["acc"]
+        valid_f1 = valid_metrics["f1"]
 
-        if valid_acc > metrics["valid_acc"]:
+        if valid_f1 > metrics["valid_f1"]:
             # new best, save stuff
             is_this_epoch_valid_improve = True
-            print("++ new best valid acc save checkpoint")
+            print("++ new best valid f1 save checkpoint")
             for k, v in valid_metrics.items():
                 metrics[f"valid_{k}"] = v
             num_non_improve_epoch = 0
@@ -121,7 +121,6 @@ def valid_epoch(model, valid_loader, writer=None, epoch_idx=None, valid_set_name
     all_labels = []
 
     total_n_samples = 0
-    total_n_correct = 0
     total_loss = 0
     with torch.no_grad():
         for i, batch in enumerate(
@@ -134,22 +133,23 @@ def valid_epoch(model, valid_loader, writer=None, epoch_idx=None, valid_set_name
             loss = outputs["loss"]
             total_loss += loss
 
-            is_correct = outputs["is_correct"]
-            total_n_correct += is_correct.sum()
-            total_n_samples += is_correct.shape[0]
-
             logits = outputs["logits"]
             all_logits.append(logits.detach().cpu().numpy())
-            labels = batch["y"]
+            labels = outputs["labels"]
             all_labels.append(labels.detach().cpu().numpy())
 
-        valid_acc = (total_n_correct / total_n_samples).item()
+            num_samples = outputs["logits"].shape[0]
+            total_n_samples += num_samples
+            total_loss += (loss * num_samples).item()
+
         valid_loss = (total_loss / total_n_samples).item()
+
+        f1, precision, recall = _calc_f1(all_logits, all_labels)
 
         if writer is not None and epoch_idx is not None:
             writer.add_scalar(
-                f"{valid_set_name if valid_set_name else 'valid'} acc",
-                valid_acc,
+                f"{valid_set_name if valid_set_name else 'valid'} f1",
+                f1,
                 epoch_idx,
             )
             writer.add_scalar(
@@ -158,11 +158,11 @@ def valid_epoch(model, valid_loader, writer=None, epoch_idx=None, valid_set_name
                 epoch_idx,
             )
 
-    f1 = _calc_f1_score(all_logits, all_labels)
     metrics = {
-        "acc": valid_acc,
-        "f1": f1,
         "loss": valid_loss,
+        "precision": precision,
+        "recall": recall,
+        "f1": f1,
     }
     _print_metrics(metrics)
     return metrics
@@ -171,7 +171,7 @@ def valid_epoch(model, valid_loader, writer=None, epoch_idx=None, valid_set_name
 def train_epoch(model, optimizer, train_loader, writer=None, epoch_idx=None):
     model.train()
 
-    total_n_samples = total_n_correct = total_loss = 0
+    total_n_samples = total_loss = 0
     all_logits = []
     all_labels = []
 
@@ -181,38 +181,32 @@ def train_epoch(model, optimizer, train_loader, writer=None, epoch_idx=None):
         optimizer.zero_grad()
         outputs = model(batch)
 
-        loss = outputs["loss_to_backward"]
+        loss = outputs["loss"]
         loss.backward()
         optimizer.step()
 
-        is_correct = outputs["is_correct"]
-        num_correct = is_correct.sum()
-        num_samples = is_correct.shape[0]
-        train_acc = num_correct / num_samples
-
         logits = outputs["logits"]
         all_logits.append(logits.detach().cpu().numpy())
-        labels = batch["y"]
+        labels = outputs["labels"]
         all_labels.append(labels.detach().cpu().numpy())
 
         if writer is not None and epoch_idx is not None:
             # tensorboard
             step_idx = epoch_idx * len(train_loader) + i
             writer.add_scalar("train loss", loss.item(), step_idx)
-            writer.add_scalar("train acc", train_acc, step_idx)
 
+        num_samples = outputs["logits"].shape[0]
         total_n_samples += num_samples
         total_loss += (loss * num_samples).item()
-        total_n_correct += num_correct
 
-    acc = (total_n_correct / total_n_samples).item()
     loss = total_loss / total_n_samples
 
-    f1 = _calc_f1_score(all_logits, all_labels)
+    f1, precision, recall = _calc_f1(all_logits, all_labels)
     metrics = {
-        "acc": acc,
-        "f1": f1,
         "loss": loss,
+        "precision": precision,
+        "recall": recall,
+        "f1": f1,
     }
     _print_metrics(metrics)
     return metrics
@@ -223,7 +217,7 @@ def _print_metrics(metrics):
         print("--", k.rjust(10), ":", v)
 
 
-def _calc_f1_score(all_logits, all_labels):
+def _calc_f1(all_logits, all_labels):
     all_logits = np.concatenate(all_logits, axis=0)
     all_labels = np.concatenate(all_labels, axis=0)
     if all_labels.ndim == 1:
@@ -233,10 +227,13 @@ def _calc_f1_score(all_logits, all_labels):
     else:
         # K-hot label case
         y_pred = 1 / (1 + np.exp(-all_logits))  # sigmoid
+        y_pred = y_pred > 0.5
         y_true = all_labels
 
     f1 = f1_score(y_true=y_true, y_pred=y_pred, average="micro")
-    return f1
+    precision = precision_score(y_true=y_true, y_pred=y_pred, average="micro")
+    recall = recall_score(y_true=y_true, y_pred=y_pred, average="micro")
+    return f1, precision, recall
 
 
 # def valid(

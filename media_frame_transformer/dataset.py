@@ -52,7 +52,7 @@ def load_all_primary_frame_samples(issues: List[str]) -> List[TextSample]:
                     text=clean_text(raw_data[id]["text"]),
                     code=raw_data[id]["primary_frame"],
                     issue=issue,
-                    subframes=articleid2subframes[id],
+                    subframes=set(articleid2subframes[id]),
                     weight=1,
                 )
             )
@@ -83,7 +83,7 @@ def load_kfold_primary_frame_samples(
                             text=clean_text(item["text"]),
                             code=item["primary_frame"],
                             issue=issue,
-                            subframes=articleid2subframes[id],
+                            subframes=set(articleid2subframes[id]),
                             weight=1,
                         )
                     )
@@ -138,18 +138,28 @@ class PrimaryFrameDataset(Dataset):
                 padding="max_length",
             )
         )
-        y = frame_code_to_idx(sample.code)
-        subframes = np.zeros((15,))
-        for i in sample.subframes:
-            subframes[i] = 1
+
+        primary_frame_idx = frame_code_to_idx(sample.code)
+        subframes_vec = _get_vector_from_idxs(list(sample.subframes))
+        retrieval_vec = _get_vector_from_idxs(
+            list(sample.subframes.union({primary_frame_idx}))
+        )
+
         return {
             "x": x,
-            "y": y,
             "weight": sample.weight,
-            "subframes": subframes,
+            "primary_frame": primary_frame_idx,
+            "subframes": subframes_vec,
+            "retrieval": retrieval_vec,
             "label_props": self.issue2labelprop[sample.issue],
             "issue_idx": self.issue2idx[sample.issue],
         }
+
+
+def _get_vector_from_idxs(idxs):
+    vec = np.zeros((15,))
+    vec[idxs] = 1
+    return vec
 
 
 def get_kfold_primary_frames_datasets(
