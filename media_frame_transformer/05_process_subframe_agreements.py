@@ -43,7 +43,7 @@ if __name__ == "__main__":
             subframes = get_agreed_subframes(annotator2spans, textlen)
             articleid2subframes[articleid] = subframes
 
-        frameidx2perc = {}
+        frameidx2perc = [0] * 15
         for frameidx in range(15):
             frameidx2perc[frameidx] = sum(
                 1 for subframes in articleid2subframes.values() if frameidx in subframes

@@ -12,8 +12,8 @@ from media_frame_transformer.experiment_config import (
 )
 from media_frame_transformer.experiments import run_experiments
 
-arch = f"{ARCH}_retrieval"
-EXPERIMENT_NAME = f"11b.{arch}"
+arch = f"{ARCH}_rs"
+EXPERIMENT_NAME = f"11rs.{arch}"
 
 
 def _train():

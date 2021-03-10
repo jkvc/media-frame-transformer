@@ -140,6 +140,7 @@ class PrimaryFrameDataset(Dataset):
         )
 
         primary_frame_idx = frame_code_to_idx(sample.code)
+        primary_frame_vec = _get_vector_from_idxs([primary_frame_idx])
         subframes_vec = _get_vector_from_idxs(list(sample.subframes))
         retrieval_vec = _get_vector_from_idxs(
             list(sample.subframes.union({primary_frame_idx}))
@@ -148,7 +149,8 @@ class PrimaryFrameDataset(Dataset):
         return {
             "x": x,
             "weight": sample.weight,
-            "primary_frame": primary_frame_idx,
+            "primary_frame_idx": primary_frame_idx,
+            "primary_frame_vec": primary_frame_vec,
             "subframes": subframes_vec,
             "retrieval": retrieval_vec,
             "label_props": self.issue2labelprop[sample.issue],

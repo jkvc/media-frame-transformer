@@ -37,13 +37,13 @@ class RobertaFrameClassifier(nn.Module):
         self,
         dropout=0.1,
         n_class=15,
-        task="classification",
+        task="c",
         issue_supervision=False,
         subframe_supervision=False,
     ):
         super(RobertaFrameClassifier, self).__init__()
         self.task = task
-        assert task in ["classification", "retrieval"]
+        assert task in ["c", "rm", "rs"]
 
         self.roberta = RobertaModel.from_pretrained("roberta-base")
         self.dropout = nn.Dropout(p=dropout)
@@ -79,12 +79,19 @@ class RobertaFrameClassifier(nn.Module):
         cls_emb = self.dropout(cls_emb)
 
         frame_out = self.frame_ff(cls_emb)
-        if self.task == "classification":
-            labels = batch["primary_frame"].to(DEVICE)
+        if self.task == "c":
+            labels = batch["primary_frame_idx"].to(DEVICE)
             frame_loss = F.cross_entropy(frame_out, labels, reduction="none")
             loss = frame_loss
-        elif self.task == "retrieval":
+        elif self.task == "rm":
             labels = batch["retrieval"].to(DEVICE)
+            frame_loss = F.binary_cross_entropy_with_logits(
+                frame_out, labels, reduction="none"
+            )
+            frame_loss = frame_loss.mean(dim=-1)
+            loss = frame_loss
+        elif self.task == "rs":
+            labels = batch["primary_frame_vec"].to(DEVICE)
             frame_loss = F.binary_cross_entropy_with_logits(
                 frame_out, labels, reduction="none"
             )
@@ -130,15 +137,27 @@ def roberta_meddrop_half():
     return _freeze_roberta_top_n_layers(roberta_meddrop(), 6)
 
 
-@register_model("roberta_meddrop_retrieval")
-def roberta_meddrop_retrieval():
-    return RobertaFrameClassifier(dropout=0.15, task="retrieval")
+@register_model("roberta_meddrop_rm")
+def roberta_meddrop_rm():
+    return RobertaFrameClassifier(dropout=0.15, task="rm")
 
 
-@register_model("roberta_meddrop_half_retrieval")
-def roberta_meddrop_half_retrieval():
+@register_model("roberta_meddrop_half_rm")
+def roberta_meddrop_half_rm():
     return _freeze_roberta_top_n_layers(
-        RobertaFrameClassifier(dropout=0.15, task="retrieval"), 6
+        RobertaFrameClassifier(dropout=0.15, task="rm"), 6
+    )
+
+
+@register_model("roberta_meddrop_rs")
+def roberta_meddrop_rs():
+    return RobertaFrameClassifier(dropout=0.15, task="rs")
+
+
+@register_model("roberta_meddrop_half_rs")
+def roberta_meddrop_half_rs():
+    return _freeze_roberta_top_n_layers(
+        RobertaFrameClassifier(dropout=0.15, task="rs"), 6
     )
 
 
