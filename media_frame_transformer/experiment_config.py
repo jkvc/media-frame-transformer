@@ -6,7 +6,7 @@ KFOLD = 8
 FOLDS_TO_RUN = [0, 1, 2]
 
 ARCH = "roberta_meddrop"
-BATCHSIZE = 10
+BATCHSIZE = 20
 
 # ARCH = "roberta_meddrop_half"
 # BATCHSIZE = 20
