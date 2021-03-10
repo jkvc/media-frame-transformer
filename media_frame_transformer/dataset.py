@@ -43,19 +43,16 @@ def load_all_primary_frame_samples(issues: List[str]) -> List[TextSample]:
             "primary_frame"
         ]
         raw_data = load_json(join(FRAMING_DATA_DIR, f"{issue}_labeled.json"))
+        articleid2subframes = load_json(join(DATA_DIR, "subframes", f"{issue}.json"))
+
         for id in train_set_ids:
             item = raw_data[id]
-            subframes = set(
-                frame_code_to_idx(span["code"])
-                for spans in item["annotations"]["framing"].values()
-                for span in spans
-            )
             samples.append(
                 TextSample(
                     text=clean_text(raw_data[id]["text"]),
                     code=raw_data[id]["primary_frame"],
                     issue=issue,
-                    subframes=subframes,
+                    subframes=articleid2subframes[id],
                     weight=1,
                 )
             )
@@ -75,22 +72,18 @@ def load_kfold_primary_frame_samples(
     for issue in tqdm(issues):
         raw_data = load_json(join(FRAMING_DATA_DIR, f"{issue}_labeled.json"))
         kfold_data = load_json(join(FRAMING_DATA_DIR, f"{issue}_{k}_folds.json"))
+        articleid2subframes = load_json(join(DATA_DIR, "subframes", f"{issue}.json"))
 
         for ki, fold in enumerate(kfold_data["primary_frame"]):
             for split in ["train", "valid"]:
                 for id in fold[split]:
                     item = raw_data[id]
-                    subframes = set(
-                        frame_code_to_idx(span["code"])
-                        for spans in item["annotations"]["framing"].values()
-                        for span in spans
-                    )
                     fold2split2samples[ki][split].append(
                         TextSample(
                             text=clean_text(item["text"]),
                             code=item["primary_frame"],
                             issue=issue,
-                            subframes=subframes,
+                            subframes=articleid2subframes[id],
                             weight=1,
                         )
                     )

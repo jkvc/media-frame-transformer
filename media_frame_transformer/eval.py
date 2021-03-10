@@ -13,7 +13,7 @@ from tqdm import tqdm
 from transformers import AdamW, AutoModelForSequenceClassification
 
 from media_frame_transformer.dataset import get_kfold_primary_frames_datasets
-from media_frame_transformer.learning import valid, valid_epoch
+from media_frame_transformer.learning import valid_epoch
 from media_frame_transformer.utils import DEVICE, load_json, save_json
 
 
