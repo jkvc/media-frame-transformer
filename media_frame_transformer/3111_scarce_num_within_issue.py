@@ -68,7 +68,9 @@ def _train():
                     "valid": valid_dataset,
                 }
 
-    run_experiments(ARCH, path2datasets, batchsize=BATCHSIZE)
+    run_experiments(
+        ARCH, path2datasets, batchsize=BATCHSIZE, num_early_stop_non_improve_epoch=5
+    )
 
 
 # def _plot():

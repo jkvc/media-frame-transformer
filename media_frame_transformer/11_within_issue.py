@@ -24,7 +24,9 @@ def _train():
             path2datasets[
                 join(MODELS_DIR, EXPERIMENT_NAME, issue, f"fold_{ki}")
             ] = datasets
-    run_experiments(ARCH, path2datasets, batchsize=BATCHSIZE)
+    run_experiments(
+        ARCH, path2datasets, batchsize=BATCHSIZE, num_early_stop_non_improve_epoch=5
+    )
 
 
 if __name__ == "__main__":
