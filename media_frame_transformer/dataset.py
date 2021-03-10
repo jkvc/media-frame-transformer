@@ -1,14 +1,12 @@
 from dataclasses import dataclass
 from os.path import exists, join
-from typing import Dict, List, Literal, Set
+from typing import Dict, List, Set
 
 import numpy as np
-import torch
-from config import DATA_DIR, FRAMING_DATA_DIR, ISSUES
-from torch.utils.data import DataLoader, Dataset, TensorDataset
+from config import DATA_DIR, FRAMING_DATA_DIR
+from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
-from transformers import PreTrainedTokenizerBase, RobertaTokenizer, RobertaTokenizerFast
-from transformers.utils.dummy_pt_objects import TransfoXLLMHeadModel
+from transformers import RobertaTokenizerFast
 
 from media_frame_transformer.utils import load_json
 
@@ -101,25 +99,31 @@ def label_idx_to_frame_code(idx: int) -> float:
     return float(idx + 1)
 
 
-def get_issue2labelprop():
-    distr = load_json(join(DATA_DIR, "label_distributions.json"))
-    issue2labelprop = {
-        issue: np.array(props) for issue, props in distr["props"].items()
+# def get_issue2labelprop():
+#     distr = load_json(join(DATA_DIR, "label_distributions.json"))
+#     issue2labelprop = {
+#         issue: np.array(props) for issue, props in distr["props"].items()
+#     }
+#     return issue2labelprop
+
+
+# def get_issue2idx():
+#     issue2labelprop = get_issue2labelprop()
+#     issue2idx = {issue: i for i, issue in enumerate(issue2labelprop.keys())}
+#     return issue2idx
+
+
+def load_label_distributions():
+    return {
+        t: load_json(join(DATA_DIR, "distributions", f"{t}.json"))
+        for t in ["primary", "secondary", "both"]
     }
-    return issue2labelprop
-
-
-def get_issue2idx():
-    issue2labelprop = get_issue2labelprop()
-    issue2idx = {issue: i for i, issue in enumerate(issue2labelprop.keys())}
-    return issue2idx
 
 
 class PrimaryFrameDataset(Dataset):
     def __init__(self, samples: List[TextSample]):
         self.samples: List[TextSample] = samples
-        self.issue2labelprop = get_issue2labelprop()
-        self.issue2idx = get_issue2idx()
+        self.label_distributions = load_label_distributions()
         self.tokenizer = None
 
     def __len__(self):
@@ -141,8 +145,8 @@ class PrimaryFrameDataset(Dataset):
 
         primary_frame_idx = frame_code_to_idx(sample.code)
         primary_frame_vec = _get_vector_from_idxs([primary_frame_idx])
-        subframes_vec = _get_vector_from_idxs(list(sample.subframes))
-        retrieval_vec = _get_vector_from_idxs(
+        secondary_frame_vec = _get_vector_from_idxs(list(sample.subframes))
+        both_frame_vec = _get_vector_from_idxs(
             list(sample.subframes.union({primary_frame_idx}))
         )
 
@@ -151,10 +155,17 @@ class PrimaryFrameDataset(Dataset):
             "weight": sample.weight,
             "primary_frame_idx": primary_frame_idx,
             "primary_frame_vec": primary_frame_vec,
-            "subframes": subframes_vec,
-            "retrieval": retrieval_vec,
-            "label_props": self.issue2labelprop[sample.issue],
-            "issue_idx": self.issue2idx[sample.issue],
+            "secondary_frame_vec": secondary_frame_vec,
+            "both_frame_vec": both_frame_vec,
+            "primary_frame_distr": np.array(
+                self.label_distributions["primary"][sample.issue]
+            ),
+            "secondary_frame_distr": np.array(
+                self.label_distributions["secondary"][sample.issue]
+            ),
+            "both_frame_distr": np.array(
+                self.label_distributions["both"][sample.issue]
+            ),
         }
 
 

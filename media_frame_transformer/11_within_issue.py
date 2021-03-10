@@ -1,3 +1,4 @@
+import sys
 from os.path import join
 
 from config import ISSUES, MODELS_DIR
@@ -12,7 +13,9 @@ from media_frame_transformer.experiment_config import (
 )
 from media_frame_transformer.experiments import run_experiments
 
-EXPERIMENT_NAME = f"11.{ARCH}"
+TASK = sys.argv[1]
+_arch = f"{ARCH}.{TASK}"
+EXPERIMENT_NAME = f"11.{_arch}"
 
 
 def _train():
@@ -24,9 +27,7 @@ def _train():
             path2datasets[
                 join(MODELS_DIR, EXPERIMENT_NAME, issue, f"fold_{ki}")
             ] = datasets
-    run_experiments(
-        ARCH, path2datasets, batchsize=BATCHSIZE, num_early_stop_non_improve_epoch=5
-    )
+    run_experiments(_arch, path2datasets, batchsize=BATCHSIZE)
 
 
 if __name__ == "__main__":

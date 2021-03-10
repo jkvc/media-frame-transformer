@@ -21,25 +21,15 @@ def register_model(arch: str):
     return _register
 
 
-def _freeze_roberta_top_n_layers(model, n):
-    # pretrained roberta = embeddings -> encoder.laysers -> classfier
-    for param in model.roberta.embeddings.parameters():
-        param.requires_grad = False
-    for i, module in enumerate(model.roberta.encoder.layer):
-        if i < n:
-            for param in module.parameters():
-                param.requires_grad = False
-    return model
-
-
 class RobertaFrameClassifier(nn.Module):
     def __init__(
         self,
         dropout=0.1,
         n_class=15,
         task="c",
-        issue_supervision=False,
-        subframe_supervision=False,
+        use_issue_supervision=False,
+        use_subframe_supervision=False,
+        use_label_distribution=False,
     ):
         super(RobertaFrameClassifier, self).__init__()
         self.task = task
@@ -47,22 +37,32 @@ class RobertaFrameClassifier(nn.Module):
 
         self.roberta = RobertaModel.from_pretrained("roberta-base")
         self.dropout = nn.Dropout(p=dropout)
+        self.roberta_emb_size = 768
+
+        self.use_label_distribution = use_label_distribution
+        if use_label_distribution:
+            self.label_distribution_intake = nn.Sequential(
+                nn.Linear(15, 64),
+                nn.Tanh(),
+            )
+            self.roberta_emb_size += 64
+
         self.frame_ff = nn.Sequential(
-            nn.Linear(768, 768),
+            nn.Linear(self.roberta_emb_size, 768),
             nn.Tanh(),
             nn.Dropout(p=dropout),
             nn.Linear(768, n_class),
         )
-        self.issue_supervision = issue_supervision
-        if issue_supervision:
+        self.use_issue_supervision = use_issue_supervision
+        if use_issue_supervision:
             self.issue_ff = nn.Sequential(
                 nn.Linear(768, 768),
                 nn.Tanh(),
                 nn.Dropout(p=dropout),
                 nn.Linear(768, 6),
             )
-        self.subframe_supervision = subframe_supervision
-        if subframe_supervision:
+        self.use_subframe_supervision = use_subframe_supervision
+        if use_subframe_supervision:
             self.subframe_ff = nn.Sequential(
                 nn.Linear(768, 768),
                 nn.Tanh(),
@@ -78,13 +78,23 @@ class RobertaFrameClassifier(nn.Module):
         cls_emb = x[:, 0, :]  # the <s> tokens, i.e. <CLS>
         cls_emb = self.dropout(cls_emb)
 
+        if self.use_label_distribution:
+            if self.task in ["c", "rs"]:
+                label_distribution = batch["primary_frame_distr"]
+            elif self.task == "rm":
+                label_distribution = batch["both_frame_distr"]
+            label_distribution_encoded = self.label_distribution_intake(
+                label_distribution.to(DEVICE).to(torch.float)
+            )
+            cls_emb = torch.cat([cls_emb, label_distribution_encoded], dim=-1)
+
         frame_out = self.frame_ff(cls_emb)
         if self.task == "c":
             labels = batch["primary_frame_idx"].to(DEVICE)
             frame_loss = F.cross_entropy(frame_out, labels, reduction="none")
             loss = frame_loss
         elif self.task == "rm":
-            labels = batch["retrieval"].to(DEVICE)
+            labels = batch["both_frame_vec"].to(DEVICE)
             frame_loss = F.binary_cross_entropy_with_logits(
                 frame_out, labels, reduction="none"
             )
@@ -98,12 +108,12 @@ class RobertaFrameClassifier(nn.Module):
             frame_loss = frame_loss.mean(dim=-1)
             loss = frame_loss
 
-        if self.issue_supervision:
+        if self.use_issue_supervision:
             issue_out = self.issue_ff(cls_emb)
             issue_idx = batch["issue_idx"].to(DEVICE)
             issue_loss = F.cross_entropy(issue_out, issue_idx, reduction="none")
             loss = loss + issue_loss
-        if self.subframe_supervision:
+        if self.use_subframe_supervision:
             subframe_out = self.subframe_ff(cls_emb)
             subframes = batch["subframes"].to(DEVICE).to(torch.float)
             subframe_loss = F.binary_cross_entropy_with_logits(
@@ -122,138 +132,28 @@ class RobertaFrameClassifier(nn.Module):
         }
 
 
-@register_model("roberta_base")
-def roberta_base():
-    return RobertaFrameClassifier(dropout=0.1)
-
-
-@register_model("roberta_meddrop")
-def roberta_meddrop():
-    return RobertaFrameClassifier(dropout=0.15)
-
-
-@register_model("roberta_meddrop_half")
-def roberta_meddrop_half():
-    return _freeze_roberta_top_n_layers(roberta_meddrop(), 6)
-
-
-@register_model("roberta_meddrop_rm")
-def roberta_meddrop_rm():
-    return RobertaFrameClassifier(dropout=0.15, task="rm")
-
-
-@register_model("roberta_meddrop_half_rm")
-def roberta_meddrop_half_rm():
-    return _freeze_roberta_top_n_layers(
-        RobertaFrameClassifier(dropout=0.15, task="rm"), 6
-    )
-
-
-@register_model("roberta_meddrop_rs")
-def roberta_meddrop_rs():
-    return RobertaFrameClassifier(dropout=0.15, task="rs")
-
-
-@register_model("roberta_meddrop_half_rs")
-def roberta_meddrop_half_rs():
-    return _freeze_roberta_top_n_layers(
-        RobertaFrameClassifier(dropout=0.15, task="rs"), 6
-    )
-
-
-@register_model("roberta_meddrop_issuesup")
-def roberta_meddrop_issuesup():
-    model = RobertaFrameClassifier(dropout=0.15, issue_supervision=True)
+def _freeze_roberta_top_n_layers(model, n):
+    # pretrained roberta = embeddings -> encoder.laysers -> classfier
+    for param in model.roberta.embeddings.parameters():
+        param.requires_grad = False
+    for i, module in enumerate(model.roberta.encoder.layer):
+        if i < n:
+            for param in module.parameters():
+                param.requires_grad = False
     return model
 
 
-@register_model("roberta_meddrop_half_issuesup")
-def roberta_meddrop_half_issuesup():
-    model = RobertaFrameClassifier(dropout=0.15, issue_supervision=True)
-    model = _freeze_roberta_top_n_layers(model, 6)
-    return model
+def create_models(task):
+    @register_model(f"roberta_meddrop.{task}")
+    def _():
+        return RobertaFrameClassifier(dropout=0.15, task=task)
+
+    @register_model(f"roberta_meddrop.{task}_dist")
+    def _():
+        return RobertaFrameClassifier(
+            dropout=0.15, task=task, use_label_distribution=True
+        )
 
 
-@register_model("roberta_meddrop_subframesup")
-def roberta_meddrop_subframesup():
-    model = RobertaFrameClassifier(dropout=0.15, subframe_supervision=True)
-    return model
-
-
-@register_model("roberta_meddrop_half_subframesup")
-def roberta_meddrop_half_subframesup():
-    model = RobertaFrameClassifier(dropout=0.15, subframe_supervision=True)
-    model = _freeze_roberta_top_n_layers(model, 6)
-    return model
-
-
-@register_model("roberta_meddrop_issuesup_subframesup")
-def roberta_meddrop_issuesup_subframesup():
-    model = RobertaFrameClassifier(
-        dropout=0.15, issue_supervision=True, subframe_supervision=True
-    )
-    return model
-
-
-@register_model("roberta_meddrop_half_issuesup_subframesup")
-def roberta_meddrop_half_issuesup_subframesup():
-    model = RobertaFrameClassifier(
-        dropout=0.15, issue_supervision=True, subframe_supervision=True
-    )
-    model = _freeze_roberta_top_n_layers(model, 6)
-    return model
-
-
-class RobertaWithLabelProps(nn.Module):
-    def __init__(self, dropout=0.1, n_class=15, labelprop_hidden=50):
-        super(RobertaWithLabelProps, self).__init__()
-        self.roberta = RobertaModel.from_pretrained("roberta-base")
-        self.dropout = nn.Dropout(p=dropout)
-
-        self.dense1 = nn.Linear(768, 768)
-        self.label_prop_intake = nn.Linear(n_class, labelprop_hidden)
-        self.dense2 = nn.Linear(768 + labelprop_hidden, 768)
-        self.out_proj = nn.Linear(768, n_class)
-        self.loss = nn.CrossEntropyLoss(reduction="none")
-
-    def forward(self, batch):
-        x = batch["x"].to(DEVICE)
-        x = self.roberta(x)
-        x = x[0]
-        x = x[:, 0, :]  # the <s> tokens, i.e. <CLS>
-        x = self.dropout(x)  # (b, 768)
-        x = self.dense1(x)
-        x = torch.tanh(x)
-        x = self.dropout(x)
-
-        label_props = batch["label_props"].to(DEVICE).to(torch.float)
-        label_props = self.label_prop_intake(label_props)
-        label_props = torch.tanh(label_props)  # (b, labelprop_hidden)
-
-        x = torch.cat([x, label_props], dim=1)
-        x = self.dense2(x)
-        x = torch.tanh(x)
-        x = self.dropout(x)
-        x = self.out_proj(x)
-
-        y = batch["y"].to(DEVICE)
-        loss = self.loss(x, y)
-        loss_weight = batch["weight"].to(DEVICE)
-        loss = (loss * loss_weight).mean()
-
-        return {
-            "logits": x,
-            "loss_to_backward": loss,
-            "loss": loss,
-            "is_correct": torch.argmax(x, dim=-1) == y,
-        }
-
-
-@register_model("roberta_meddrop_labelprops")
-def roberta_meddrop_labelprops():
-    return RobertaWithLabelProps(dropout=0.15)
-
-
-@register_model("roberta_meddrop_half_labelprops")
-def roberta_meddrop_half_labelprops():
-    return _freeze_roberta_top_n_layers(RobertaWithLabelProps(dropout=0.15), 6)
+for task in ["c", "rm", "rs"]:
+    create_models(task)
