@@ -120,12 +120,15 @@ class PrimaryFrameDataset(Dataset):
         self.samples: List[TextSample] = samples
         self.issue2labelprop = get_issue2labelprop()
         self.issue2idx = get_issue2idx()
-        self.tokenizer = RobertaTokenizerFast.from_pretrained("roberta-base")
+        self.tokenizer = None
 
     def __len__(self):
         return len(self.samples)
 
     def __getitem__(self, idx):
+        if not self.tokenizer:
+            self.tokenizer = RobertaTokenizerFast.from_pretrained("roberta-base")
+
         sample = self.samples[idx]
         x = np.array(
             self.tokenizer.encode(
