@@ -90,7 +90,7 @@ def train(
             is_this_epoch_valid_improve = True
             if keep_latest:
                 print("** keeping latest")
-            if valid_f1 > metrics["valid_f1"]:
+            else:
                 print("++ new best valid f1")
             for k, v in valid_metrics.items():
                 metrics[f"valid_{k}"] = v

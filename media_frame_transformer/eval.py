@@ -78,7 +78,7 @@ def save_tree(rootdir, tree, save_filename):
     meanrows = {}
     for childname, subtree in tree.items():
         if childname != "mean":
-            save_tree(join(rootdir, childname), subtree)
+            save_tree(join(rootdir, childname), subtree, save_filename)
             meanrows[childname] = subtree["mean"]
 
     meanrows["mean"] = tree["mean"]
