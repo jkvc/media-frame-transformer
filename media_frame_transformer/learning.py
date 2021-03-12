@@ -76,6 +76,8 @@ def train(
     num_non_improve_epoch = 0
 
     for e in range(max_epochs):
+        print(">> begin epoch", e)
+
         # train
         train_metrics = train_epoch(model, optimizer, train_loader, writer, e)
         for k, v in train_metrics.items():
@@ -119,6 +121,8 @@ def train(
 
         save_json(metrics, join(logdir, "leaf_metrics.json"))
         save_json(metrics, join(logdir, f"leaf_epoch_{e}.json"))
+
+        print(">> end epoch", e, "\n")
 
     writer.close()
 
