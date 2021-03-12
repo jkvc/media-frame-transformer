@@ -1,17 +1,13 @@
 import sys
-from collections import defaultdict
-from os import mkdir
-from os.path import exists, join
-from pprint import pprint
+from os.path import join
 from random import Random, shuffle
 
-import numpy as np
 from config import ISSUES, MODELS_DIR
 
-from media_frame_transformer import models
 from media_frame_transformer.dataset import (
     PrimaryFrameDataset,
-    fold2split2samples_to_datasets,
+    get_kfold_primary_frames_datasets,
+    load_all_primary_frame_samples,
     load_kfold_primary_frame_samples,
 )
 from media_frame_transformer.eval import reduce_and_save_metrics
@@ -22,61 +18,64 @@ from media_frame_transformer.experiment_config import (
     KFOLD,
 )
 from media_frame_transformer.experiments import run_experiments
-from media_frame_transformer.learning import train
-from media_frame_transformer.utils import (
-    load_json,
-    mkdir_overwrite,
-    write_str_list_as_txt,
-)
-from media_frame_transformer.viualization import plot_series_w_labels
 
 RNG = Random()
 RNG_SEED = 0xDEADBEEF
 
+
 TASK = sys.argv[1]
 _arch = f"{ARCH}.{TASK}"
 
-EXPERIMENT_NAME = f"3111.{_arch}"
+EXPERIMENT_NAME = f"14.{_arch}"
+CHECKPOINT_EXPERIMENT_NAME = f"13.{_arch}"
+
 DATASET_SIZES = [125, 250, 500]
 MAX_EPOCH = 8
 
 
 def _train():
-    # root/numsample/issue/fold
+    # root/numsample/holdout_issue/fold
     path2datasets = {}
+    path2checkpointpath = {}
 
-    for issue in ISSUES:
-        fold2split2samples = load_kfold_primary_frame_samples([issue], KFOLD)
-        num_train_sample = len(fold2split2samples[0]["train"])
+    for holdout_issue in ISSUES:
+        model_name = f"holdout_{holdout_issue}"
+
+        fold2split2samples = load_kfold_primary_frame_samples([holdout_issue], KFOLD)
         for ki in FOLDS_TO_RUN:
             split2samples = fold2split2samples[ki]
             RNG.seed(RNG_SEED)
             RNG.shuffle(split2samples["train"])
 
             for numsample in DATASET_SIZES:
-                if numsample > num_train_sample:
-                    continue
                 train_samples = split2samples["train"][:numsample]
                 valid_samples = split2samples["valid"]
                 train_dataset = PrimaryFrameDataset(train_samples)
                 valid_dataset = PrimaryFrameDataset(valid_samples)
 
-                path2datasets[
-                    join(
-                        MODELS_DIR,
-                        EXPERIMENT_NAME,
-                        f"{numsample:04}_samples",
-                        issue,
-                        f"fold_{ki}",
-                    )
-                ] = {
+                save_dir = join(
+                    MODELS_DIR,
+                    EXPERIMENT_NAME,
+                    f"{numsample:04}_samples",
+                    model_name,
+                    f"fold_{ki}",
+                )
+                path2datasets[save_dir] = {
                     "train": train_dataset,
                     "valid": valid_dataset,
                 }
+                path2checkpointpath[save_dir] = join(
+                    MODELS_DIR,
+                    CHECKPOINT_EXPERIMENT_NAME,
+                    model_name,
+                    f"fold_{ki}",
+                    "checkpoint.pth",
+                )
 
     run_experiments(
         _arch,
         path2datasets,
+        path2checkpointpath=path2checkpointpath,
         batchsize=BATCHSIZE,
         max_epochs=MAX_EPOCH,
         save_model=False,

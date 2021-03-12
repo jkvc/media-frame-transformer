@@ -72,8 +72,8 @@ def reduce_tree_inplace(tree):
     root["mean"] = mean_metrics
 
 
-def save_tree(rootdir, tree):
-    save_json(tree, join(rootdir, "mean_metrics.json"))
+def save_tree(rootdir, tree, save_filename):
+    save_json(tree, join(rootdir, save_filename))
 
     meanrows = {}
     for childname, subtree in tree.items():
@@ -86,7 +86,11 @@ def save_tree(rootdir, tree):
     df.to_csv(join(rootdir, "mean_metrics.csv"))
 
 
-def reduce_and_save_metrics(rootdir, leaf_metric_filename="leaf_metrics.json"):
+def reduce_and_save_metrics(
+    rootdir,
+    leaf_metric_filename="leaf_metrics.json",
+    save_filename="mean_metrics.json",
+):
     leaf_metric_paths = sorted(
         glob(join(rootdir, "**", leaf_metric_filename), recursive=True)
     )
@@ -117,7 +121,7 @@ def reduce_and_save_metrics(rootdir, leaf_metric_filename="leaf_metrics.json"):
     reduce_tree_inplace(tree)
     pprint(tree)
 
-    save_tree(rootdir, tree)
+    save_tree(rootdir, tree, save_filename)
 
 
 if __name__ == "__main__":

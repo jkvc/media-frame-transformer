@@ -32,6 +32,8 @@ def train(
     num_early_stop_non_improve_epoch=NUM_EARLY_STOP_NON_IMPROVE_EPOCH,
     batchsize=TRAIN_BATCHSIZE,
     n_dataloader_worker=N_DATALOADER_WORKER,
+    save_model=True,
+    keep_latest=False,
 ):
 
     train_loader = DataLoader(
@@ -83,14 +85,19 @@ def train(
         valid_metrics = valid_epoch(model, valid_loader, writer, e)
         valid_f1 = valid_metrics["f1"]
 
-        if valid_f1 > metrics["valid_f1"]:
+        if valid_f1 > metrics["valid_f1"] or keep_latest:
             # new best, save stuff
             is_this_epoch_valid_improve = True
-            print("++ new best valid f1 save checkpoint")
+            if keep_latest:
+                print("** keeping latest")
+            if valid_f1 > metrics["valid_f1"]:
+                print("++ new best valid f1")
             for k, v in valid_metrics.items():
                 metrics[f"valid_{k}"] = v
             num_non_improve_epoch = 0
-            torch.save(model, join(logdir, "checkpoint.pth"))
+            if save_model:
+                print(f'++ save model checkpoint to {join(logdir, "checkpoint.pth")}')
+                torch.save(model, join(logdir, "checkpoint.pth"))
         else:
             # not improving
             is_this_epoch_valid_improve = False
@@ -111,6 +118,7 @@ def train(
                         metrics[f"{set_name}_{k}"] = v
 
         save_json(metrics, join(logdir, "leaf_metrics.json"))
+        save_json(metrics, join(logdir, f"leaf_epoch_{e}.json"))
 
     writer.close()
 
