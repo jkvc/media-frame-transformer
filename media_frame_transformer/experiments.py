@@ -30,6 +30,8 @@ def run_experiments(arch, path2datasets, path2checkpointpath=None, **kwargs):
             print(">> load checkpoint from", checkpoint_path)
             model = torch.load(checkpoint_path)
 
+        print(model)
+
         train(
             model=model,
             train_dataset=datasets["train"],

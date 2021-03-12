@@ -29,7 +29,8 @@ class RobertaFrameClassifier(nn.Module):
         task="c",
         use_issue_supervision=False,
         use_subframe_supervision=False,
-        use_label_distribution=False,
+        use_label_distribution_input=None,
+        use_label_distribution_deviation=True,
     ):
         super(RobertaFrameClassifier, self).__init__()
         self.task = task
@@ -39,13 +40,19 @@ class RobertaFrameClassifier(nn.Module):
         self.dropout = nn.Dropout(p=dropout)
         self.roberta_emb_size = 768
 
-        self.use_label_distribution = use_label_distribution
-        if use_label_distribution:
-            self.label_distribution_intake = nn.Sequential(
-                nn.Linear(15, 64),
-                nn.Tanh(),
-            )
-            self.roberta_emb_size += 64
+        self.use_label_distribution_input = use_label_distribution_input
+        if use_label_distribution_input is not None:
+            if use_label_distribution_input == "ff":
+                self.label_distribution_intake = nn.Sequential(
+                    nn.Linear(15, 64),
+                    nn.Tanh(),
+                )
+                self.roberta_emb_size += 64
+            elif use_label_distribution_input == "id":
+                self.label_distribution_intake = nn.Identity()
+                self.roberta_emb_size += 15
+            else:
+                raise NotImplementedError()
 
         self.frame_ff = nn.Sequential(
             nn.Linear(self.roberta_emb_size, 768),
@@ -53,22 +60,25 @@ class RobertaFrameClassifier(nn.Module):
             nn.Dropout(p=dropout),
             nn.Linear(768, n_class),
         )
-        self.use_issue_supervision = use_issue_supervision
-        if use_issue_supervision:
-            self.issue_ff = nn.Sequential(
-                nn.Linear(768, 768),
-                nn.Tanh(),
-                nn.Dropout(p=dropout),
-                nn.Linear(768, 6),
-            )
-        self.use_subframe_supervision = use_subframe_supervision
-        if use_subframe_supervision:
-            self.subframe_ff = nn.Sequential(
-                nn.Linear(768, 768),
-                nn.Tanh(),
-                nn.Dropout(p=dropout),
-                nn.Linear(768, n_class),
-            )
+
+        self.use_label_distribution_deviation = use_label_distribution_deviation
+
+        # self.use_issue_supervision = use_issue_supervision
+        # if use_issue_supervision:
+        #     self.issue_ff = nn.Sequential(
+        #         nn.Linear(768, 768),
+        #         nn.Tanh(),
+        #         nn.Dropout(p=dropout),
+        #         nn.Linear(768, 6),
+        #     )
+        # self.use_subframe_supervision = use_subframe_supervision
+        # if use_subframe_supervision:
+        #     self.subframe_ff = nn.Sequential(
+        #         nn.Linear(768, 768),
+        #         nn.Tanh(),
+        #         nn.Dropout(p=dropout),
+        #         nn.Linear(768, n_class),
+        #     )
 
     def forward(self, batch):
         x = batch["x"].to(DEVICE)
@@ -78,17 +88,27 @@ class RobertaFrameClassifier(nn.Module):
         cls_emb = x[:, 0, :]  # the <s> tokens, i.e. <CLS>
         cls_emb = self.dropout(cls_emb)
 
-        if self.use_label_distribution:
-            if self.task in ["c", "rs"]:
-                label_distribution = batch["primary_frame_distr"]
-            elif self.task == "rm":
-                label_distribution = batch["both_frame_distr"]
+        if self.task in ["c", "rs"]:
+            label_distribution = batch["primary_frame_distr"]
+        elif self.task == "rm":
+            label_distribution = batch["both_frame_distr"]
+        else:
+            raise NotImplementedError()
+
+        if self.use_label_distribution_input is not None:
             label_distribution_encoded = self.label_distribution_intake(
                 label_distribution.to(DEVICE).to(torch.float)
             )
             cls_emb = torch.cat([cls_emb, label_distribution_encoded], dim=-1)
 
-        frame_out = self.frame_ff(cls_emb)
+        frame_out = self.frame_ff(cls_emb)  # (b, nclass)
+
+        if self.use_label_distribution_deviation:
+            frame_out = frame_out + torch.log(
+                label_distribution.to(DEVICE).to(torch.float)
+            )
+
+        # calculate loss
         if self.task == "c":
             labels = batch["primary_frame_idx"].to(DEVICE)
             frame_loss = F.cross_entropy(frame_out, labels, reduction="none")
@@ -108,19 +128,19 @@ class RobertaFrameClassifier(nn.Module):
             frame_loss = frame_loss.mean(dim=-1)
             loss = frame_loss
 
-        if self.use_issue_supervision:
-            issue_out = self.issue_ff(cls_emb)
-            issue_idx = batch["issue_idx"].to(DEVICE)
-            issue_loss = F.cross_entropy(issue_out, issue_idx, reduction="none")
-            loss = loss + issue_loss
-        if self.use_subframe_supervision:
-            subframe_out = self.subframe_ff(cls_emb)
-            subframes = batch["subframes"].to(DEVICE).to(torch.float)
-            subframe_loss = F.binary_cross_entropy_with_logits(
-                subframe_out, subframes, reduction="none"
-            )  # (b, 15)
-            subframe_loss = subframe_loss.mean(dim=-1)  # (b,)
-            loss = loss + subframe_loss
+        # if self.use_issue_supervision:
+        #     issue_out = self.issue_ff(cls_emb)
+        #     issue_idx = batch["issue_idx"].to(DEVICE)
+        #     issue_loss = F.cross_entropy(issue_out, issue_idx, reduction="none")
+        #     loss = loss + issue_loss
+        # if self.use_subframe_supervision:
+        #     subframe_out = self.subframe_ff(cls_emb)
+        #     subframes = batch["subframes"].to(DEVICE).to(torch.float)
+        #     subframe_loss = F.binary_cross_entropy_with_logits(
+        #         subframe_out, subframes, reduction="none"
+        #     )  # (b, 15)
+        #     subframe_loss = subframe_loss.mean(dim=-1)  # (b,)
+        #     loss = loss + subframe_loss
 
         loss_weight = batch["weight"].to(DEVICE)
         loss = (loss * loss_weight).mean()
@@ -151,7 +171,22 @@ def create_models(task):
     @register_model(f"roberta_meddrop.{task}_dist")
     def _():
         return RobertaFrameClassifier(
-            dropout=0.15, task=task, use_label_distribution=True
+            dropout=0.15, task=task, use_label_distribution_input="ff"
+        )
+
+    @register_model(f"roberta_meddrop.{task}_distid")
+    def _():
+        return RobertaFrameClassifier(
+            dropout=0.15, task=task, use_label_distribution_input="id"
+        )
+
+    @register_model(f"roberta_meddrop.{task}_dev")
+    def _():
+        return RobertaFrameClassifier(
+            dropout=0.15,
+            task=task,
+            use_label_distribution_input=None,
+            use_label_distribution_deviation=True,
         )
 
 
