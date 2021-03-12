@@ -18,6 +18,10 @@ from media_frame_transformer.experiment_config import (
     KFOLD,
 )
 from media_frame_transformer.experiments import run_experiments
+from media_frame_transformer.viualization import (
+    plot_series_w_labels,
+    visualize_num_sample_num_epoch,
+)
 
 RNG = Random()
 RNG_SEED = 0xDEADBEEF
@@ -84,11 +88,20 @@ def _train():
 
 
 if __name__ == "__main__":
-    _train()
-    reduce_and_save_metrics(join(MODELS_DIR, EXPERIMENT_NAME))
-    for epoch in range(MAX_EPOCH):
-        reduce_and_save_metrics(
-            join(MODELS_DIR, EXPERIMENT_NAME),
-            leaf_metric_filename=f"leaf_epoch_{epoch}.json",
-            save_filename=f"mean_epoch_{epoch}.json",
-        )
+    # _train()
+    # reduce_and_save_metrics(join(MODELS_DIR, EXPERIMENT_NAME))
+    # for epoch in range(MAX_EPOCH):
+    #     reduce_and_save_metrics(
+    #         join(MODELS_DIR, EXPERIMENT_NAME),
+    #         leaf_metric_filename=f"leaf_epoch_{epoch}.json",
+    #         save_filename=f"mean_epoch_{epoch}.json",
+    #     )
+    visualize_num_sample_num_epoch(
+        join(MODELS_DIR, EXPERIMENT_NAME),
+        DATASET_SIZES,
+        range(MAX_EPOCH),
+        title=f"14.{_arch}",
+        legend_title="num samples",
+        xlabel="epoch idx",
+        ylabel="valid f1",
+    )
