@@ -1,7 +1,7 @@
 import torch
 
 KFOLD = 8
-FOLDS_TO_RUN = [0, 1, 2, 3]
+FOLDS_TO_RUN = [0, 1, 2]
 
 ARCH = "roberta_meddrop"
 BATCHSIZE = 25
