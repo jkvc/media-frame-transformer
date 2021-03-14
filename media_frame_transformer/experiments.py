@@ -1,5 +1,6 @@
 from os import makedirs
 from os.path import exists, join
+from pprint import pprint
 
 import torch
 
@@ -11,8 +12,7 @@ from media_frame_transformer.utils import mkdir_overwrite, write_str_list_as_txt
 def run_experiments(
     arch, path2datasets, path2checkpointpath=None, model_transform=None, **kwargs
 ):
-    from pprint import pprint
-
+    path2datasets = {k: path2datasets[k] for k in sorted(list(path2datasets.keys()))}
     pprint(list(path2datasets.keys()))
 
     for path, datasets in path2datasets.items():

@@ -39,20 +39,22 @@ def visualize_num_sample_num_epoch(
     numepoch2metrics = {
         epoch: load_json(join(model_root, f"mean_epoch_{epoch}.json"))
         for epoch in numepochs
+        if exists(join(model_root, f"mean_epoch_{epoch}.json"))
     }
     numsample2xys = {}
     for numsample in numsamples:
         xys = []
         numsample2xys[numsample] = xys
         for numepoch in numepochs:
-            xys.append(
-                (
-                    numepoch,
-                    numepoch2metrics[numepoch][f"{numsample:04}_samples"]["mean"][
-                        "valid_f1"
-                    ],
+            if numepoch in numepoch2metrics:
+                xys.append(
+                    (
+                        numepoch,
+                        numepoch2metrics[numepoch][f"{numsample:04}_samples"]["mean"][
+                            "valid_f1"
+                        ],
+                    )
                 )
-            )
     plot_series_w_labels(numsample2xys, title)
     plt.legend(title=legend_title)
     plt.xlabel(xlabel)

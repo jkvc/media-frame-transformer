@@ -1,6 +1,6 @@
 import shutil
 import sys
-from os.path import join
+from os.path import exists, join
 from random import Random
 
 from config import ISSUES, MODELS_DIR
@@ -21,22 +21,22 @@ from media_frame_transformer.models import (
     freeze_roberta_all_transformer,
     freeze_roberta_module,
 )
+from media_frame_transformer.utils import load_json, save_json
 from media_frame_transformer.viualization import visualize_num_sample_num_epoch
 
 RNG = Random()
 RNG_SEED = 0xDEADBEEF
 
 
-MODE, TASK = sys.argv[1:3]
-assert MODE in ["full", "shallow", "ffonly"]
+TASK = sys.argv[1]
 
 _arch = f"{ARCH}.{TASK}"
 
-EXPERIMENT_NAME = f"14.{MODE}.{_arch}"
+EXPERIMENT_NAME = f"14.{_arch}"
 CHECKPOINT_EXPERIMENT_NAME = f"13.{_arch}"
 
 DATASET_SIZES = [125, 250, 500, 1000]
-MAX_EPOCH = 12
+MAX_EPOCH = 10
 
 
 def _train():
@@ -78,25 +78,12 @@ def _train():
                     "checkpoint.pth",
                 )
 
-    if MODE == "full":
-        print(">> fine tuning the whole model")
-        model_transform = None
-    elif MODE == "shallow":
-        print(">> freezing roberta transformers")
-        model_transform = freeze_roberta_all_transformer
-    elif MODE == "ffonly":
-        print(">> freezing roberta completely")
-        model_transform = freeze_roberta_module
-    else:
-        raise NotImplementedError()
-
     run_experiments(
         _arch,
         path2datasets,
         path2checkpointpath=path2checkpointpath,
         save_model=False,
         keep_latest=True,
-        model_transform=model_transform,
         batchsize=BATCHSIZE,
         max_epochs=MAX_EPOCH,
         skip_train_zeroth_epoch=True,
@@ -122,3 +109,28 @@ if __name__ == "__main__":
         xlabel="epoch idx",
         ylabel="valid f1",
     )
+
+    model_root = join(MODELS_DIR, EXPERIMENT_NAME)
+    numepoch2metrics = {
+        epoch: load_json(join(model_root, f"mean_epoch_{epoch}.json"))
+        for epoch in range(MAX_EPOCH)
+        if exists(join(model_root, f"mean_epoch_{epoch}.json"))
+    }
+    numsample2bestvalid = {}
+
+    for numsample in DATASET_SIZES:
+        best_valids = []
+        for issue in ISSUES:
+            for ki in FOLDS_TO_RUN:
+                valids = []
+                for numepoch in range(MAX_EPOCH):
+                    if numepoch not in numepoch2metrics:
+                        continue
+                    valid = numepoch2metrics[numepoch][f"{numsample:04}_samples"][
+                        f"holdout_{issue}"
+                    ][f"fold_{ki}"]["mean"]["valid_f1"]
+                    valids.append(valid)
+                best_valid = max(valids)
+                best_valids.append(best_valid)
+        numsample2bestvalid[numsample] = sum(best_valids) / len(best_valids)
+    save_json(numsample2bestvalid, join(model_root, "best_earlystop.json"))

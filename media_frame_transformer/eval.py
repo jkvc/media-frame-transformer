@@ -94,6 +94,8 @@ def reduce_and_save_metrics(
     leaf_metric_paths = sorted(
         glob(join(rootdir, "**", leaf_metric_filename), recursive=True)
     )
+    if len(leaf_metric_paths) == 0:
+        return
     pprint(leaf_metric_paths)
 
     # build tree to leaf metrics
