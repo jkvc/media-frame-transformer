@@ -35,12 +35,6 @@ def visualize_num_sample_num_epoch(
     xlabel="",
     ylabel="",
 ):
-    val_before_pretrain = None
-    if exists(join(model_root, "mean_metrics_before_adapt.json")):
-        val_before_pretrain = load_json(
-            join(model_root, "mean_metrics_before_adapt.json")
-        )["mean"]["holdout_issue_f1"]
-
     # expect root/numsample/issue/fold, and populated epoch metrics
     numepoch2metrics = {
         epoch: load_json(join(model_root, f"mean_epoch_{epoch}.json"))
@@ -50,12 +44,10 @@ def visualize_num_sample_num_epoch(
     for numsample in numsamples:
         xys = []
         numsample2xys[numsample] = xys
-        if val_before_pretrain is not None:
-            xys.append((0, val_before_pretrain))
         for numepoch in numepochs:
             xys.append(
                 (
-                    len(xys),
+                    numepoch,
                     numepoch2metrics[numepoch][f"{numsample:04}_samples"]["mean"][
                         "valid_f1"
                     ],

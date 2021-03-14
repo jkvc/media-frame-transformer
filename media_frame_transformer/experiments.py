@@ -8,7 +8,9 @@ from media_frame_transformer.learning import train
 from media_frame_transformer.utils import mkdir_overwrite, write_str_list_as_txt
 
 
-def run_experiments(arch, path2datasets, path2checkpointpath=None, **kwargs):
+def run_experiments(
+    arch, path2datasets, path2checkpointpath=None, model_transform=None, **kwargs
+):
     from pprint import pprint
 
     pprint(list(path2datasets.keys()))
@@ -30,7 +32,8 @@ def run_experiments(arch, path2datasets, path2checkpointpath=None, **kwargs):
             print(">> load checkpoint from", checkpoint_path)
             model = torch.load(checkpoint_path)
 
-        print(model)
+        if model_transform is not None:
+            model = model_transform(model)
 
         train(
             model=model,

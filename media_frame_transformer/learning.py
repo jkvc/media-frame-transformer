@@ -34,6 +34,7 @@ def train(
     n_dataloader_worker=N_DATALOADER_WORKER,
     save_model=True,
     keep_latest=False,
+    skip_train_zeroth_epoch=False,
 ):
 
     train_loader = DataLoader(
@@ -79,9 +80,12 @@ def train(
         print(">> begin epoch", e)
 
         # train
-        train_metrics = train_epoch(model, optimizer, train_loader, writer, e)
-        for k, v in train_metrics.items():
-            metrics[f"train_{k}"] = v
+        if skip_train_zeroth_epoch and e == 0:
+            pass
+        else:
+            train_metrics = train_epoch(model, optimizer, train_loader, writer, e)
+            for k, v in train_metrics.items():
+                metrics[f"train_{k}"] = v
 
         # valid
         valid_metrics = valid_epoch(model, valid_loader, writer, e)

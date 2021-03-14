@@ -158,7 +158,7 @@ class RobertaFrameClassifier(nn.Module):
         }
 
 
-def _freeze_roberta_top_n_layers(model, n):
+def freeze_roberta_top_n_layers(model, n):
     # pretrained roberta = embeddings -> encoder.laysers -> classfier
     for param in model.roberta.embeddings.parameters():
         param.requires_grad = False
@@ -166,6 +166,17 @@ def _freeze_roberta_top_n_layers(model, n):
         if i < n:
             for param in module.parameters():
                 param.requires_grad = False
+    return model
+
+
+def freeze_roberta_all_transformer(model):
+    model = freeze_roberta_top_n_layers(model, 12)
+    return model
+
+
+def freeze_roberta_module(model):
+    for param in model.roberta.parameters():
+        param.requires_grad = False
     return model
 
 

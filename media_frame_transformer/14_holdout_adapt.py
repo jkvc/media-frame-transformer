@@ -1,14 +1,12 @@
 import shutil
 import sys
 from os.path import join
-from random import Random, shuffle
+from random import Random
 
 from config import ISSUES, MODELS_DIR
 
 from media_frame_transformer.dataset import (
     PrimaryFrameDataset,
-    get_kfold_primary_frames_datasets,
-    load_all_primary_frame_samples,
     load_kfold_primary_frame_samples,
 )
 from media_frame_transformer.eval import reduce_and_save_metrics
@@ -19,19 +17,22 @@ from media_frame_transformer.experiment_config import (
     KFOLD,
 )
 from media_frame_transformer.experiments import run_experiments
-from media_frame_transformer.viualization import (
-    plot_series_w_labels,
-    visualize_num_sample_num_epoch,
+from media_frame_transformer.models import (
+    freeze_roberta_all_transformer,
+    freeze_roberta_module,
 )
+from media_frame_transformer.viualization import visualize_num_sample_num_epoch
 
 RNG = Random()
 RNG_SEED = 0xDEADBEEF
 
 
-TASK = sys.argv[1]
+MODE, TASK = sys.argv[1:3]
+assert MODE in ["full", "shallow", "ffonly"]
+
 _arch = f"{ARCH}.{TASK}"
 
-EXPERIMENT_NAME = f"14.{_arch}"
+EXPERIMENT_NAME = f"14.{MODE}.{_arch}"
 CHECKPOINT_EXPERIMENT_NAME = f"13.{_arch}"
 
 DATASET_SIZES = [125, 250, 500, 1000]
@@ -77,14 +78,28 @@ def _train():
                     "checkpoint.pth",
                 )
 
+    if MODE == "full":
+        print(">> fine tuning the whole model")
+        model_transform = None
+    elif MODE == "shallow":
+        print(">> freezing roberta transformers")
+        model_transform = freeze_roberta_all_transformer
+    elif MODE == "ffonly":
+        print(">> freezing roberta completely")
+        model_transform = freeze_roberta_module
+    else:
+        raise NotImplementedError()
+
     run_experiments(
         _arch,
         path2datasets,
         path2checkpointpath=path2checkpointpath,
-        batchsize=BATCHSIZE,
-        max_epochs=MAX_EPOCH,
         save_model=False,
         keep_latest=True,
+        model_transform=model_transform,
+        batchsize=BATCHSIZE,
+        max_epochs=MAX_EPOCH,
+        skip_train_zeroth_epoch=True,
     )
 
 
@@ -98,15 +113,11 @@ if __name__ == "__main__":
             save_filename=f"mean_epoch_{epoch}.json",
         )
 
-    shutil.copyfile(
-        join(MODELS_DIR, CHECKPOINT_EXPERIMENT_NAME, "mean_metrics.json"),
-        join(MODELS_DIR, EXPERIMENT_NAME, "mean_metrics_before_adapt.json"),
-    )
     visualize_num_sample_num_epoch(
         join(MODELS_DIR, EXPERIMENT_NAME),
         DATASET_SIZES,
         range(MAX_EPOCH),
-        title=f"14.{_arch}",
+        title=EXPERIMENT_NAME,
         legend_title="num samples",
         xlabel="epoch idx",
         ylabel="valid f1",
