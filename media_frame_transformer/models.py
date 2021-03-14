@@ -95,7 +95,10 @@ class RobertaFrameClassifier(nn.Module):
         else:
             raise NotImplementedError()
 
-        if self.use_label_distribution_input is not None:
+        if (
+            hasattr(self, "use_label_distribution_input")
+            and self.use_label_distribution_input is not None
+        ):
             label_distribution_encoded = self.label_distribution_intake(
                 label_distribution.to(DEVICE).to(torch.float)
             )
@@ -103,7 +106,10 @@ class RobertaFrameClassifier(nn.Module):
 
         frame_out = self.frame_ff(cls_emb)  # (b, nclass)
 
-        if self.use_label_distribution_deviation:
+        if (
+            hasattr(self, "use_label_distribution_deviation")
+            and self.use_label_distribution_deviation
+        ):
             frame_out = frame_out + torch.log(
                 label_distribution.to(DEVICE).to(torch.float)
             )

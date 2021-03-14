@@ -1,3 +1,4 @@
+import shutil
 import sys
 from os.path import join
 from random import Random, shuffle
@@ -33,8 +34,8 @@ _arch = f"{ARCH}.{TASK}"
 EXPERIMENT_NAME = f"14.{_arch}"
 CHECKPOINT_EXPERIMENT_NAME = f"13.{_arch}"
 
-DATASET_SIZES = [125, 250, 500]
-MAX_EPOCH = 8
+DATASET_SIZES = [125, 250, 500, 1000]
+MAX_EPOCH = 12
 
 
 def _train():
@@ -96,6 +97,11 @@ if __name__ == "__main__":
             leaf_metric_filename=f"leaf_epoch_{epoch}.json",
             save_filename=f"mean_epoch_{epoch}.json",
         )
+
+    shutil.copyfile(
+        join(MODELS_DIR, CHECKPOINT_EXPERIMENT_NAME, "mean_metrics.json"),
+        join(MODELS_DIR, EXPERIMENT_NAME, "mean_metrics_before_adapt.json"),
+    )
     visualize_num_sample_num_epoch(
         join(MODELS_DIR, EXPERIMENT_NAME),
         DATASET_SIZES,

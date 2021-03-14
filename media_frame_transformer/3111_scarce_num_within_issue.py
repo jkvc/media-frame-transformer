@@ -10,18 +10,29 @@ from config import ISSUES, MODELS_DIR
 from matplotlib.pyplot import xlabel
 
 from media_frame_transformer import models
-from media_frame_transformer.dataset import (PrimaryFrameDataset,
-                                             fold2split2samples_to_datasets,
-                                             load_kfold_primary_frame_samples)
+from media_frame_transformer.dataset import (
+    PrimaryFrameDataset,
+    fold2split2samples_to_datasets,
+    load_kfold_primary_frame_samples,
+)
 from media_frame_transformer.eval import reduce_and_save_metrics
-from media_frame_transformer.experiment_config import (ARCH, BATCHSIZE,
-                                                       FOLDS_TO_RUN, KFOLD)
+from media_frame_transformer.experiment_config import (
+    ARCH,
+    BATCHSIZE,
+    FOLDS_TO_RUN,
+    KFOLD,
+)
 from media_frame_transformer.experiments import run_experiments
 from media_frame_transformer.learning import train
-from media_frame_transformer.utils import (load_json, mkdir_overwrite,
-                                           write_str_list_as_txt)
+from media_frame_transformer.utils import (
+    load_json,
+    mkdir_overwrite,
+    write_str_list_as_txt,
+)
 from media_frame_transformer.viualization import (
-    plot_series_w_labels, visualize_num_sample_num_epoch)
+    plot_series_w_labels,
+    visualize_num_sample_num_epoch,
+)
 
 RNG = Random()
 RNG_SEED = 0xDEADBEEF
@@ -30,8 +41,8 @@ TASK = sys.argv[1]
 _arch = f"{ARCH}.{TASK}"
 
 EXPERIMENT_NAME = f"3111.{_arch}"
-DATASET_SIZES = [125, 250, 500]
-MAX_EPOCH = 8
+DATASET_SIZES = [125, 250, 500, 1000]
+MAX_EPOCH = 12
 
 
 def _train():
