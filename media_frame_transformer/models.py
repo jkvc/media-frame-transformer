@@ -36,7 +36,9 @@ class RobertaFrameClassifier(nn.Module):
         self.task = task
         assert task in ["c", "rm", "rs"]
 
-        self.roberta = RobertaModel.from_pretrained("roberta-base")
+        self.roberta = RobertaModel.from_pretrained(
+            "roberta-base", hidden_dropout_prob=dropout
+        )
         self.dropout = nn.Dropout(p=dropout)
         self.roberta_emb_size = 768
 
@@ -180,32 +182,33 @@ def freeze_roberta_module(model):
     return model
 
 
-def create_models(task):
-    @register_model(f"roberta_meddrop.{task}")
+def create_models(name, dropout, task):
+    @register_model(f"roberta_{name}.{task}")
     def _():
-        return RobertaFrameClassifier(dropout=0.15, task=task)
+        return RobertaFrameClassifier(dropout=dropout, task=task)
 
-    @register_model(f"roberta_meddrop.{task}_dist")
+    @register_model(f"roberta_{name}.{task}_dev")
     def _():
         return RobertaFrameClassifier(
-            dropout=0.15, task=task, use_label_distribution_input="ff"
-        )
-
-    @register_model(f"roberta_meddrop.{task}_distid")
-    def _():
-        return RobertaFrameClassifier(
-            dropout=0.15, task=task, use_label_distribution_input="id"
-        )
-
-    @register_model(f"roberta_meddrop.{task}_dev")
-    def _():
-        return RobertaFrameClassifier(
-            dropout=0.15,
+            dropout=dropout,
             task=task,
             use_label_distribution_input=None,
             use_label_distribution_deviation=True,
         )
 
+    # @register_model(f"roberta_{name}.{task}_dist")
+    # def _():
+    #     return RobertaFrameClassifier(
+    #         dropout=dropout, task=task, use_label_distribution_input="ff"
+    #     )
 
-for task in ["c", "rm", "rs"]:
-    create_models(task)
+    # @register_model(f"roberta_{name}.{task}_distid")
+    # def _():
+    #     return RobertaFrameClassifier(
+    #         dropout=dropout, task=task, use_label_distribution_input="id"
+    #     )
+
+
+for name, dropout in [("meddrop", 0.15), ("highdrop", 0.25)]:
+    for task in ["c", "rm", "rs"]:
+        create_models(name, dropout, task)
