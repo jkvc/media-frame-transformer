@@ -33,7 +33,13 @@ def _train():
             "train": train_issue_dataset,
             "valid": holdout_issue_dataset,
         }
-    run_experiments(_arch, path2datasets, batchsize=BATCHSIZE)
+    run_experiments(
+        _arch,
+        path2datasets,
+        batchsize=BATCHSIZE,
+        num_early_stop_non_improve_epoch=10,
+        max_epochs=10,
+    )
 
 
 if __name__ == "__main__":
