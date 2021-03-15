@@ -42,7 +42,7 @@ _arch = f"{ARCH}.{TASK}"
 
 EXPERIMENT_NAME = f"3111.{_arch}"
 DATASET_SIZES = [125, 250, 500, 1000]
-MAX_EPOCH = 12
+MAX_EPOCH = 20
 
 
 def _train():

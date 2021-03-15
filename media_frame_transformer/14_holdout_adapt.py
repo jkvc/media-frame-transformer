@@ -28,12 +28,10 @@ RNG = Random()
 RNG_SEED = 0xDEADBEEF
 
 
-TASK = sys.argv[1]
-
-_arch = f"{ARCH}.{TASK}"
+_arch = sys.argv[1]
 
 EXPERIMENT_NAME = f"14.{_arch}"
-CHECKPOINT_EXPERIMENT_NAME = f"13.{_arch}"
+CHECKPOINT_EXPERIMENT_NAME = f"13f.{_arch}"
 
 DATASET_SIZES = [125, 250, 500, 1000]
 MAX_EPOCH = 10
