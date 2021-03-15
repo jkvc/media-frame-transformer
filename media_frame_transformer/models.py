@@ -209,6 +209,6 @@ def create_models(name, dropout, task):
     #     )
 
 
-for name, dropout in [("meddrop", 0.15), ("highdrop", 0.25)]:
+for name, dropout in [("meddrop", 0.15), ("highdrop", 0.2)]:
     for task in ["c", "rm", "rs"]:
         create_models(name, dropout, task)
