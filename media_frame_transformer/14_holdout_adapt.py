@@ -72,7 +72,6 @@ def _train():
                     MODELS_DIR,
                     CHECKPOINT_EXPERIMENT_NAME,
                     model_name,
-                    f"fold_{ki}",
                     "checkpoint.pth",
                 )
 

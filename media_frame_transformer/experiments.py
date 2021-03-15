@@ -35,8 +35,6 @@ def run_experiments(
         if model_transform is not None:
             model = model_transform(model)
 
-        print(model)
-
         train(
             model=model,
             train_dataset=datasets["train"],
