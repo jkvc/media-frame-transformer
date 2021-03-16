@@ -17,8 +17,7 @@ from media_frame_transformer.experiment_config import (
 )
 from media_frame_transformer.experiments import run_experiments
 
-TASK = sys.argv[1]
-_arch = f"{ARCH}.{TASK}"
+_arch = sys.argv[1] 
 EXPERIMENT_NAME = f"13.{_arch}"
 
 
