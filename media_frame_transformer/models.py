@@ -30,7 +30,7 @@ class RobertaFrameClassifier(nn.Module):
         use_issue_supervision=False,
         use_subframe_supervision=False,
         use_label_distribution_input=None,
-        use_label_distribution_deviation=True,
+        use_label_distribution_deviation=False,
     ):
         super(RobertaFrameClassifier, self).__init__()
         self.task = task
