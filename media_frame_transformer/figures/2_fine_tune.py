@@ -39,14 +39,14 @@ if __name__ == "__main__":
             (numsample, ood_acc) for numsample in DATASET_SIZES
         ]
 
-        # ood adapted (14 holdout adapt)
+        # adapted (14 holdout adapt)
         adapt_raw_json = load_json(
             join(MODELS_DIR, f"14.{_arch}", "best_earlystop.json")
         )
-        type2numsample0acc["ood adapted"] = []
+        type2numsample0acc["adapted"] = []
         for numsample in DATASET_SIZES:
             if issue != "mean":
-                type2numsample0acc["ood adapted"].append(
+                type2numsample0acc["adapted"].append(
                     (
                         numsample,
                         adapt_raw_json[str(numsample)][issue]["mean"][
@@ -55,7 +55,7 @@ if __name__ == "__main__":
                     )
                 )
             else:
-                type2numsample0acc["ood adapted"].append(
+                type2numsample0acc["adapted"].append(
                     (
                         numsample,
                         adapt_raw_json[str(numsample)]["mean"][
@@ -64,14 +64,14 @@ if __name__ == "__main__":
                     )
                 )
 
-        # vanilla adapted (3111 scarce num within issue)
+        # fine-tuned from stock (3111 scarce num within issue)
         vanilla_raw_json = load_json(
             join(MODELS_DIR, f"3111.{_arch.replace('_dev','')}", "mean_metrics.json")
         )
-        type2numsample0acc["vanilla adapted"] = []
+        type2numsample0acc["fine-tuned from stock"] = []
         for numsample in DATASET_SIZES:
             if issue != "mean":
-                type2numsample0acc["vanilla adapted"].append(
+                type2numsample0acc["fine-tuned from stock"].append(
                     (
                         numsample,
                         vanilla_raw_json[f"{numsample:04}_samples"][issue]["mean"][
@@ -80,7 +80,7 @@ if __name__ == "__main__":
                     )
                 )
             else:
-                type2numsample0acc["vanilla adapted"].append(
+                type2numsample0acc["fine-tuned from stock"].append(
                     (
                         numsample,
                         vanilla_raw_json[f"{numsample:04}_samples"]["mean"]["valid_f1"],
