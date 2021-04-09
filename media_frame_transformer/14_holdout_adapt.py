@@ -9,10 +9,11 @@ from media_frame_transformer.dataset import (
     PrimaryFrameDataset,
     load_kfold_primary_frame_samples,
 )
-from media_frame_transformer.eval import reduce_and_save_metrics
+from media_frame_transformer.eval import reduce_and_save_metrics, reduce_tree_inplace
 from media_frame_transformer.experiment_config import (
     ARCH,
     BATCHSIZE,
+    DATASET_SIZES,
     FOLDS_TO_RUN,
     KFOLD,
 )
@@ -33,7 +34,6 @@ _arch = sys.argv[1]
 EXPERIMENT_NAME = f"14.{_arch}"
 CHECKPOINT_EXPERIMENT_NAME = f"13f.{_arch}"
 
-DATASET_SIZES = [125, 250, 500, 1000]
 MAX_EPOCH = 10
 
 
@@ -114,10 +114,13 @@ if __name__ == "__main__":
         if exists(join(model_root, f"mean_epoch_{epoch}.json"))
     }
     numsample2bestvalid = {}
+    bestearlystop_metrics = {}
 
     for numsample in DATASET_SIZES:
-        best_valids = []
+        bestearlystop_metrics[numsample] = {}
+        # best_valids = []
         for issue in ISSUES:
+            bestearlystop_metrics[numsample][issue] = {}
             for ki in FOLDS_TO_RUN:
                 valids = []
                 for numepoch in range(MAX_EPOCH):
@@ -128,6 +131,11 @@ if __name__ == "__main__":
                     ][f"fold_{ki}"]["mean"]["valid_f1"]
                     valids.append(valid)
                 best_valid = max(valids)
-                best_valids.append(best_valid)
-        numsample2bestvalid[numsample] = sum(best_valids) / len(best_valids)
-    save_json(numsample2bestvalid, join(model_root, "best_earlystop.json"))
+                bestearlystop_metrics[numsample][issue][ki] = {
+                    "mean": {"best_earlystop_valid_f1": best_valid}
+                }
+                # best_valids.append(best_valid)
+        # numsample2bestvalid[numsample] = sum(best_valids) / len(best_valids)
+
+    reduce_tree_inplace(bestearlystop_metrics)
+    save_json(bestearlystop_metrics, join(model_root, "best_earlystop.json"))

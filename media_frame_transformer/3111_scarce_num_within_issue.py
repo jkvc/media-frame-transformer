@@ -19,6 +19,7 @@ from media_frame_transformer.eval import reduce_and_save_metrics
 from media_frame_transformer.experiment_config import (
     ARCH,
     BATCHSIZE,
+    DATASET_SIZES,
     FOLDS_TO_RUN,
     KFOLD,
 )
@@ -40,7 +41,6 @@ RNG_SEED = 0xDEADBEEF
 _arch = sys.argv[1]
 
 EXPERIMENT_NAME = f"3111.{_arch}"
-DATASET_SIZES = [125, 250, 500, 1000]
 MAX_EPOCH = 20
 
 
