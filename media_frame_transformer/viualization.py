@@ -6,7 +6,6 @@ from media_frame_transformer.utils import load_json
 
 
 def plot_series_w_labels(name2xys, title, save_path=None):
-    plt.clf()
     for name, xys in name2xys.items():
         xs, ys = list(zip(*xys))
         plt.plot(xs, ys, label=name)
