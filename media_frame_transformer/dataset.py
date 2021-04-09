@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from os.path import exists, join
-from typing import Dict, List, Set
+from typing import Dict, List, Optional, Set
 
 import numpy as np
 from config import DATA_DIR, FRAMING_DATA_DIR, ISSUES
@@ -124,22 +124,16 @@ class PrimaryFrameDataset(Dataset):
     def __init__(
         self,
         samples: List[TextSample],
-        use_ground_truth_label_distribution: bool = True,
+        issue2props_override: Optional[Dict[str, np.ndarray]] = None,
     ):
         self.samples: List[TextSample] = samples
         self.tokenizer = None
         self.label_distributions = load_label_distributions()
-        if not use_ground_truth_label_distribution:
-            issue2props = {issue: np.zeros((15,)) for issue in ISSUES}
-            for sample in samples:
-                issue2props[sample.issue][frame_code_to_idx(sample.code)] += 1
-            issue2props = {
-                issue: props / props.sum() for issue, props in issue2props.items()
-            }
+        if issue2props_override is not None:
             self.label_distributions = {
-                "primary": issue2props,
-                "secondary": issue2props,
-                "both": issue2props,
+                "primary": issue2props_override,
+                "secondary": issue2props_override,
+                "both": issue2props_override,
             }
 
     def __len__(self):
