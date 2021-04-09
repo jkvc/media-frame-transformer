@@ -3,7 +3,7 @@ from os.path import exists, join
 from typing import Dict, List, Set
 
 import numpy as np
-from config import DATA_DIR, FRAMING_DATA_DIR
+from config import DATA_DIR, FRAMING_DATA_DIR, ISSUES
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 from transformers import RobertaTokenizerFast
@@ -121,10 +121,26 @@ def load_label_distributions():
 
 
 class PrimaryFrameDataset(Dataset):
-    def __init__(self, samples: List[TextSample]):
+    def __init__(
+        self,
+        samples: List[TextSample],
+        use_ground_truth_label_distribution: bool = True,
+    ):
         self.samples: List[TextSample] = samples
-        self.label_distributions = load_label_distributions()
         self.tokenizer = None
+        self.label_distributions = load_label_distributions()
+        if not use_ground_truth_label_distribution:
+            issue2props = {issue: np.zeros((15,)) for issue in ISSUES}
+            for sample in samples:
+                issue2props[sample.issue][frame_code_to_idx(sample.code)] += 1
+            issue2props = {
+                issue: props / props.sum() for issue, props in issue2props.items()
+            }
+            self.label_distributions = {
+                "primary": issue2props,
+                "secondary": issue2props,
+                "both": issue2props,
+            }
 
     def __len__(self):
         return len(self.samples)

@@ -22,8 +22,8 @@ from media_frame_transformer.viualization import plot_series_w_labels
 _arch = sys.argv[1]
 
 if __name__ == "__main__":
-    savedir = join(FIGURES_DIR, f"2_finetune.{_arch}")
-    mkdir_overwrite(savedir)
+    savedir = join(FIGURES_DIR, _arch)
+    makedirs(savedir, exist_ok=True)
 
     for issue in ISSUES + ["mean"]:
 
@@ -90,5 +90,5 @@ if __name__ == "__main__":
         plot_series_w_labels(
             type2numsample0acc,
             title=f"Finetuned {_arch} accuracy: {issue}",
-            save_path=join(savedir, f"{issue}.png"),
+            save_path=join(savedir, f"2_{issue}.png"),
         )
