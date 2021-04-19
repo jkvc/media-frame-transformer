@@ -10,22 +10,6 @@ from media_frame_transformer.utils import load_json, save_json
 TOKENIZER = RobertaTokenizerFast.from_pretrained("roberta-base")
 
 
-# def encode_data(data):
-#     id2tokens = {}
-#     for k, v in tqdm(data.items()):
-
-#         # preprocess text
-#         text = v["text"]
-#         lines = text.split("\n\n")
-#         lines = lines[3:]  # first 3 lines are id, "PRIMARY", title
-#         text = "\n".join(lines)
-#         tokens = TOKENIZER.encode(text, add_special_tokens=True, truncation=True)
-#         assert len(tokens) <= 512
-#         id2tokens[k] = tokens
-
-#     return id2tokens
-
-
 if __name__ == "__main__":
     stats = []
 
@@ -33,12 +17,6 @@ if __name__ == "__main__":
         print(">>", issue)
         data = load_json(join(FRAMING_DATA_DIR, f"{issue}_labeled.json"))
         ids = list(data.keys())
-
-        # id2tokens = encode_data(data)
-        # save_json(
-        #     id2tokens,
-        #     join(FRAMING_DATA_DIR, f"{issue}_encoded.json"),
-        # )
 
         testsets = load_json(join(FRAMING_DATA_DIR, f"{issue}_test_sets.json"))
         testsets = {setname: set(ids) for setname, ids in testsets.items()}

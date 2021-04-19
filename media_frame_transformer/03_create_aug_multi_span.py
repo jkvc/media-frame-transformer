@@ -2,18 +2,15 @@ import random
 from collections import defaultdict
 from os import mkdir
 from os.path import exists, join
-from pprint import pprint
 
 import numpy as np
-import pandas as pd
 from config import AUG_MULTI_SPANS_DIR, AUG_SINGLE_SPANS_DIR, FRAMING_DATA_DIR, ISSUES
-from tqdm import tqdm, trange
 
 from media_frame_transformer.dataset import frame_code_to_idx, label_idx_to_frame_code
 from media_frame_transformer.utils import ParallelHandler, load_json, save_json
 
 KFOLD = 8
-AUG_SET_SIZE_MULTIPLIER = 2 
+AUG_SET_SIZE_MULTIPLIER = 2
 
 MAX_SAMPLE_NUMCHAR = 1500
 MIN_SAMPLE_NUMCHAR = 30

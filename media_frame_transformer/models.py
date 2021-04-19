@@ -27,8 +27,6 @@ class RobertaFrameClassifier(nn.Module):
         dropout=0.1,
         n_class=15,
         task="c",
-        use_issue_supervision=False,
-        use_subframe_supervision=False,
         use_label_distribution_input=None,
         use_label_distribution_deviation=False,
     ):
@@ -64,23 +62,6 @@ class RobertaFrameClassifier(nn.Module):
         )
 
         self.use_label_distribution_deviation = use_label_distribution_deviation
-
-        # self.use_issue_supervision = use_issue_supervision
-        # if use_issue_supervision:
-        #     self.issue_ff = nn.Sequential(
-        #         nn.Linear(768, 768),
-        #         nn.Tanh(),
-        #         nn.Dropout(p=dropout),
-        #         nn.Linear(768, 6),
-        #     )
-        # self.use_subframe_supervision = use_subframe_supervision
-        # if use_subframe_supervision:
-        #     self.subframe_ff = nn.Sequential(
-        #         nn.Linear(768, 768),
-        #         nn.Tanh(),
-        #         nn.Dropout(p=dropout),
-        #         nn.Linear(768, n_class),
-        #     )
 
     def forward(self, batch):
         x = batch["x"].to(DEVICE)
@@ -136,20 +117,6 @@ class RobertaFrameClassifier(nn.Module):
             frame_loss = frame_loss.mean(dim=-1)
             loss = frame_loss
 
-        # if self.use_issue_supervision:
-        #     issue_out = self.issue_ff(cls_emb)
-        #     issue_idx = batch["issue_idx"].to(DEVICE)
-        #     issue_loss = F.cross_entropy(issue_out, issue_idx, reduction="none")
-        #     loss = loss + issue_loss
-        # if self.use_subframe_supervision:
-        #     subframe_out = self.subframe_ff(cls_emb)
-        #     subframes = batch["subframes"].to(DEVICE).to(torch.float)
-        #     subframe_loss = F.binary_cross_entropy_with_logits(
-        #         subframe_out, subframes, reduction="none"
-        #     )  # (b, 15)
-        #     subframe_loss = subframe_loss.mean(dim=-1)  # (b,)
-        #     loss = loss + subframe_loss
-
         loss_weight = batch["weight"].to(DEVICE)
         loss = (loss * loss_weight).mean()
 
@@ -195,18 +162,6 @@ def create_models(name, dropout, task):
             use_label_distribution_input=None,
             use_label_distribution_deviation=True,
         )
-
-    # @register_model(f"roberta_{name}.{task}_dist")
-    # def _():
-    #     return RobertaFrameClassifier(
-    #         dropout=dropout, task=task, use_label_distribution_input="ff"
-    #     )
-
-    # @register_model(f"roberta_{name}.{task}_distid")
-    # def _():
-    #     return RobertaFrameClassifier(
-    #         dropout=dropout, task=task, use_label_distribution_input="id"
-    #     )
 
 
 for name, dropout in [("meddrop", 0.15), ("highdrop", 0.2)]:

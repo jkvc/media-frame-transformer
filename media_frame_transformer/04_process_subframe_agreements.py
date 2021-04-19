@@ -5,10 +5,7 @@ import numpy as np
 from config import DATA_DIR, FRAMING_DATA_DIR, ISSUES
 from tqdm import tqdm
 
-from media_frame_transformer.dataset import (
-    frame_code_to_idx,
-    load_all_primary_frame_samples,
-)
+from media_frame_transformer.dataset import frame_code_to_idx
 from media_frame_transformer.utils import load_json, mkdir_overwrite, save_json
 
 

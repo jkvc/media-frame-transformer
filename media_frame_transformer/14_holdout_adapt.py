@@ -1,4 +1,3 @@
-import shutil
 import sys
 from os.path import exists, join
 from random import Random
@@ -11,17 +10,12 @@ from media_frame_transformer.dataset import (
 )
 from media_frame_transformer.eval import reduce_and_save_metrics, reduce_tree_inplace
 from media_frame_transformer.experiment_config import (
-    ARCH,
     BATCHSIZE,
     DATASET_SIZES,
     FOLDS_TO_RUN,
     KFOLD,
 )
 from media_frame_transformer.experiments import run_experiments
-from media_frame_transformer.models import (
-    freeze_roberta_all_transformer,
-    freeze_roberta_module,
-)
 from media_frame_transformer.utils import load_json, save_json
 from media_frame_transformer.viualization import visualize_num_sample_num_epoch
 

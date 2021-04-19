@@ -1,19 +1,17 @@
-# usage: python <scriptname> <k>
 import random
 import sys
 from os.path import join
 
 import numpy as np
 from config import FRAMING_DATA_DIR, ISSUES
-from tqdm import tqdm
-from transformers import PreTrainedTokenizerBase, RobertaTokenizer
 
 from media_frame_transformer.utils import load_json, save_json
 
 random.seed(0xDEADBEEF)
 
+K = int(sys.argv[1])
+
 if __name__ == "__main__":
-    k = int(sys.argv[1])
 
     for issue in ISSUES:
         print(">>", issue)
@@ -25,10 +23,10 @@ if __name__ == "__main__":
             all_ids = sorted(all_ids)
             random.shuffle(all_ids)
             numsamples = len(all_ids)
-            chunksize = int(np.round(numsamples / k))
+            chunksize = int(np.round(numsamples / K))
 
             folds = []
-            for ki in range(k):
+            for ki in range(K):
                 valid_ids = set(all_ids[ki * chunksize : (ki + 1) * chunksize])
                 train_ids = [id for id in all_ids if id not in valid_ids]
                 valid_ids = list(valid_ids)
@@ -39,4 +37,4 @@ if __name__ == "__main__":
             for fold in folds:
                 print("--", "train", len(fold["train"]), "valid", len(fold["valid"]))
 
-        save_json(to_save, join(FRAMING_DATA_DIR, f"{issue}_{k}_folds.json"))
+        save_json(to_save, join(FRAMING_DATA_DIR, f"{issue}_{K}_folds.json"))
