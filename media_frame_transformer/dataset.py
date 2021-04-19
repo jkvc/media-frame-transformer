@@ -99,6 +99,16 @@ def label_idx_to_frame_code(idx: int) -> float:
     return float(idx + 1)
 
 
+CODES = None
+
+
+def idx_to_frame_name(idx) -> str:
+    global CODES
+    if CODES == None:
+        CODES = load_json(join(DATA_DIR, "framing_labeled", "codes.json"))
+    return CODES[f"{idx+1}.0"]
+
+
 # def get_issue2labelprop():
 #     distr = load_json(join(DATA_DIR, "label_distributions.json"))
 #     issue2labelprop = {
