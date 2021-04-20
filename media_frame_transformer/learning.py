@@ -5,6 +5,7 @@ from typing import Dict
 
 import numpy as np
 import torch
+from numpy.lib.function_base import iterable
 from sklearn.metrics import f1_score, precision_score, recall_score
 from torch.nn import functional as F
 from torch.utils.data import DataLoader
@@ -240,8 +241,11 @@ def _print_metrics(metrics):
 
 
 def _calc_f1(all_logits, all_labels):
-    all_logits = np.concatenate(all_logits, axis=0)
-    all_labels = np.concatenate(all_labels, axis=0)
+    if isinstance(all_logits, list):
+        all_logits = np.concatenate(all_logits, axis=0)
+    if isinstance(all_labels, list):
+        all_labels = np.concatenate(all_labels, axis=0)
+
     if all_labels.ndim == 1:
         # one-hot label case
         y_pred = np.argmax(all_logits, axis=-1)

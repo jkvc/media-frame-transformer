@@ -1,17 +1,19 @@
-import random
-import sys
+from os import makedirs
 from os.path import join
+from random import Random
 
 import numpy as np
-from config import FRAMING_DATA_DIR, ISSUES
-
+from config import DATA_DIR, ISSUES, KFOLD, RANDOM_SEED
 from media_frame_transformer.utils import load_json, save_json
 
-random.seed(0xDEADBEEF)
+RNG = Random()
+RNG.seed(RANDOM_SEED)
 
-K = int(sys.argv[1])
+SAVEDIR = join(DATA_DIR, f"{KFOLD}fold")
+FRAMING_DATA_DIR = join(DATA_DIR, "framing_labeled")
 
 if __name__ == "__main__":
+    makedirs(SAVEDIR, exist_ok=True)
 
     for issue in ISSUES:
         print(">>", issue)
@@ -21,12 +23,12 @@ if __name__ == "__main__":
 
         for task, all_ids in trainsets.items():
             all_ids = sorted(all_ids)
-            random.shuffle(all_ids)
+            RNG.shuffle(all_ids)
             numsamples = len(all_ids)
-            chunksize = int(np.round(numsamples / K))
+            chunksize = int(np.round(numsamples / KFOLD))
 
             folds = []
-            for ki in range(K):
+            for ki in range(KFOLD):
                 valid_ids = set(all_ids[ki * chunksize : (ki + 1) * chunksize])
                 train_ids = [id for id in all_ids if id not in valid_ids]
                 valid_ids = list(valid_ids)
@@ -37,4 +39,4 @@ if __name__ == "__main__":
             for fold in folds:
                 print("--", "train", len(fold["train"]), "valid", len(fold["valid"]))
 
-        save_json(to_save, join(FRAMING_DATA_DIR, f"{issue}_{K}_folds.json"))
+        save_json(to_save, join(SAVEDIR, f"{issue}_{KFOLD}_folds.json"))

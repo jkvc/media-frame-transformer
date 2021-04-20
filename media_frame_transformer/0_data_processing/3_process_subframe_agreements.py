@@ -1,12 +1,13 @@
+# deprecated
+
 from collections import Counter
 from os.path import join
 
 import numpy as np
 from config import DATA_DIR, FRAMING_DATA_DIR, ISSUES
-from tqdm import tqdm
-
 from media_frame_transformer.dataset import frame_code_to_idx
 from media_frame_transformer.utils import load_json, mkdir_overwrite, save_json
+from tqdm import tqdm
 
 
 def get_agreed_subframes(annotator2spans, textlen):

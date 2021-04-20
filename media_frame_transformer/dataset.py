@@ -1,13 +1,22 @@
+import re
+import sys
+from collections import Counter
 from dataclasses import dataclass
 from os.path import exists, join
 from typing import Dict, List, Optional, Set
 
 import numpy as np
+import pandas as pd
 from config import DATA_DIR, FRAMING_DATA_DIR, ISSUES
+from nltk.corpus import stopwords
+from nltk.stem import WordNetLemmatizer
+from numpy.random import f
+from sklearn.linear_model import LogisticRegression
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 from transformers import RobertaTokenizerFast
 
+from media_frame_transformer.experiment_config import VOCAB_SIZE
 from media_frame_transformer.utils import load_json
 
 INPUT_N_TOKEN = 512
@@ -109,20 +118,6 @@ def idx_to_frame_name(idx) -> str:
     return CODES[f"{idx+1}.0"]
 
 
-# def get_issue2labelprop():
-#     distr = load_json(join(DATA_DIR, "label_distributions.json"))
-#     issue2labelprop = {
-#         issue: np.array(props) for issue, props in distr["props"].items()
-#     }
-#     return issue2labelprop
-
-
-# def get_issue2idx():
-#     issue2labelprop = get_issue2labelprop()
-#     issue2idx = {issue: i for i, issue in enumerate(issue2labelprop.keys())}
-#     return issue2idx
-
-
 def load_label_distributions():
     return {
         t: load_json(join(DATA_DIR, "distributions", f"{t}.json"))
@@ -130,11 +125,23 @@ def load_label_distributions():
     }
 
 
+STOPWORDS = stopwords.words("english")
+
+
+def get_tokens(cleaned_text: str) -> List[str]:
+    text = cleaned_text.lower()
+    nopunc = re.sub(r"[^\w\s]", "", text)
+    tokens = nopunc.split()
+    tokens = [w for w in tokens if w not in STOPWORDS and not w.isdigit()]
+    return tokens
+
+
 class PrimaryFrameDataset(Dataset):
     def __init__(
         self,
         samples: List[TextSample],
         issue2props_override: Optional[Dict[str, np.ndarray]] = None,
+        vocab=None,
     ):
         self.samples: List[TextSample] = samples
         self.tokenizer = None
@@ -145,6 +152,25 @@ class PrimaryFrameDataset(Dataset):
                 "secondary": issue2props_override,
                 "both": issue2props_override,
             }
+
+        lemmeatizer = WordNetLemmatizer()
+        self.all_lemmas = [
+            [lemmeatizer.lemmatize(w) for w in get_tokens(sample.text)]
+            for sample in tqdm(samples, "lemmatize")
+        ]
+        if vocab is None:
+            # build vocab
+            word2count = Counter()
+            for lemmas in self.all_lemmas:
+                word2count.update(lemmas)
+            mostcommon = word2count.most_common(VOCAB_SIZE)
+            self.vocab = [w for w, c in mostcommon]
+        else:
+            print("using given vocab")
+            self.vocab = vocab
+
+        self.vocab_size = len(self.vocab)
+        self.lemma2idx = {w: i for i, w in enumerate(self.vocab)}
 
     def __len__(self):
         return len(self.samples)
@@ -170,6 +196,11 @@ class PrimaryFrameDataset(Dataset):
             list(sample.subframes.union({primary_frame_idx}))
         )
 
+        bow_feat = np.zeros((self.vocab_size,))
+        for lemma in self.all_lemmas[idx]:
+            if lemma in self.lemma2idx:
+                bow_feat[self.lemma2idx[lemma]] = 1
+
         return {
             "x": x,
             "weight": sample.weight,
@@ -186,6 +217,7 @@ class PrimaryFrameDataset(Dataset):
             "both_frame_distr": np.array(
                 self.label_distributions["both"][sample.issue]
             ),
+            "bow": bow_feat,
         }
 
 

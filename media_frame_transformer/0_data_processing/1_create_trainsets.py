@@ -1,14 +1,10 @@
 from os.path import join
 
 import pandas as pd
-from config import FRAMING_DATA_DIR, ISSUES
-from tqdm import tqdm
-from transformers import RobertaTokenizerFast
-
+from config import DATA_DIR, ISSUES
 from media_frame_transformer.utils import load_json, save_json
 
-TOKENIZER = RobertaTokenizerFast.from_pretrained("roberta-base")
-
+FRAMING_DATA_DIR = join(DATA_DIR, "framing_labeled")
 
 if __name__ == "__main__":
     stats = []
@@ -22,12 +18,12 @@ if __name__ == "__main__":
         testsets = {setname: set(ids) for setname, ids in testsets.items()}
 
         trainsets = {}
-        # relevance train set: any sample not in test set relevance, and has tokenized
+        # relevance train set: any sample not in test set relevance
         trainsets["relevance"] = list(
             {id for id in data if (id in ids and id not in testsets["relevance"])}
         )
 
-        # primary frame trainset: any sample not in testset primary frame, and has tokenized, and has non null primary fram
+        # primary frame trainset: any sample not in testset primary frame, and has non null primary fram
         trainsets["primary_frame"] = list(
             {
                 id
@@ -41,7 +37,7 @@ if __name__ == "__main__":
             }
         )
 
-        # primary tone trainset: any sample not in testset primary tone, and has tokenized, and has none null primary tone
+        # primary tone trainset: any sample not in testset primary tone, and has none null primary tone
         trainsets["primary_tone"] = list(
             {
                 id

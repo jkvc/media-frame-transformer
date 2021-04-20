@@ -14,7 +14,7 @@ from tqdm import tqdm
 from media_frame_transformer.dataset import frame_code_to_idx, idx_to_frame_name
 
 STOPWORDS = stopwords.words("english")
-TOP_N_WORD = 100
+TOP_N_WORD = 1000
 
 
 def get_tokens(cleaned_text: str) -> List[str]:
@@ -29,7 +29,7 @@ def build_lexicon(samples):
     lemmeatizer = WordNetLemmatizer()
     all_lemmas = [
         [lemmeatizer.lemmatize(w) for w in get_tokens(sample.text)]
-        for sample in samples
+        for sample in tqdm(samples)
     ]
 
     word2count = Counter()
@@ -47,8 +47,14 @@ def build_lexicon(samples):
                 X[i, word2idx[w]] += 1
         y[i] = frame_code_to_idx(sample.code)
 
-    model = LogisticRegression(multi_class="ovr", max_iter=5000)
+    model = LogisticRegression(
+        multi_class="multinomial",
+        max_iter=5000,
+    )
     model.fit(X, y)
+
+    preds = model.predict(X)
+    print((preds == y).sum() / len(y))
 
     df = pd.DataFrame()
     df["word"] = vocab
