@@ -1,26 +1,20 @@
 import sys
 from os.path import join
 
-from config import ISSUES, MODELS_DIR
-
+import media_frame_transformer.models_roberta
+from config import BATCHSIZE, FOLDS_TO_RUN, ISSUES, KFOLD, MODELS_DIR
 from media_frame_transformer.dataset import get_kfold_primary_frames_datasets
 from media_frame_transformer.eval import reduce_and_save_metrics
-from media_frame_transformer.experiment_config import (
-    ARCH,
-    BATCHSIZE,
-    FOLDS_TO_RUN,
-    KFOLD,
-)
 from media_frame_transformer.experiments import run_experiments
 
 _arch = sys.argv[1]
-EXPERIMENT_NAME = f"11.{_arch}"
+EXPERIMENT_NAME = f"1.{_arch}"
 
 
 def _train():
     path2datasets = {}
     for issue in ISSUES:
-        kfold_datasets = get_kfold_primary_frames_datasets([issue], KFOLD)
+        kfold_datasets = get_kfold_primary_frames_datasets([issue])
         for ki in FOLDS_TO_RUN:
             datasets = kfold_datasets[ki]
             path2datasets[

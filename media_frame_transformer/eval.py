@@ -1,3 +1,5 @@
+# deprecated?
+
 from collections import defaultdict
 from glob import glob
 from os.path import dirname, exists, join

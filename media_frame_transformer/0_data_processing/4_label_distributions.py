@@ -1,9 +1,10 @@
+# deprecated
+
 from collections import Counter
 from os.path import join
 
 import numpy as np
 from config import DATA_DIR, ISSUES
-
 from media_frame_transformer.dataset import (
     frame_code_to_idx,
     load_all_primary_frame_samples,

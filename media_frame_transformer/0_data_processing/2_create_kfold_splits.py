@@ -39,4 +39,4 @@ if __name__ == "__main__":
             for fold in folds:
                 print("--", "train", len(fold["train"]), "valid", len(fold["valid"]))
 
-        save_json(to_save, join(SAVEDIR, f"{issue}_{KFOLD}_folds.json"))
+        save_json(to_save, join(SAVEDIR, f"{issue}.json"))

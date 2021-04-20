@@ -1,11 +1,9 @@
 import sys
 from os.path import join
 
-from config import ISSUES, MODELS_DIR
-
+from config import BATCHSIZE, FOLDS_TO_RUN, ISSUES, KFOLD, MODELS_DIR
 from media_frame_transformer.dataset import get_kfold_primary_frames_datasets
 from media_frame_transformer.eval import reduce_and_save_metrics
-from media_frame_transformer.experiment_config import BATCHSIZE, FOLDS_TO_RUN, KFOLD
 from media_frame_transformer.experiments import run_experiments
 
 _arch = sys.argv[1]
