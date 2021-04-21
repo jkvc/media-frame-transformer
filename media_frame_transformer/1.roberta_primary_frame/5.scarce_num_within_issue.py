@@ -1,46 +1,27 @@
 import sys
-from collections import defaultdict
-from os import mkdir
-from os.path import exists, join
-from pprint import pprint
-from random import Random, shuffle
+from os.path import join
+from random import Random
 
-import numpy as np
-from config import ISSUES, MODELS_DIR
-from matplotlib.pyplot import xlabel
-
-from media_frame_transformer import models
-from media_frame_transformer.dataset import (
-    PrimaryFrameDataset,
-    fold2split2samples_to_datasets,
-    load_kfold_primary_frame_samples,
-)
-from media_frame_transformer.eval import reduce_and_save_metrics
-from media_frame_transformer.experiment_config import (
-    ARCH,
+import media_frame_transformer.models_roberta  # noqa
+from config import (
     BATCHSIZE,
     DATASET_SIZES,
     FOLDS_TO_RUN,
-    KFOLD,
+    ISSUES,
+    MODELS_DIR,
+    RANDOM_SEED,
 )
+from media_frame_transformer.dataset import PrimaryFrameDataset
+from media_frame_transformer.eval import reduce_and_save_metrics
 from media_frame_transformer.experiments import run_experiments
-from media_frame_transformer.learning import train
-from media_frame_transformer.utils import (
-    load_json,
-    mkdir_overwrite,
-    write_str_list_as_txt,
-)
-from media_frame_transformer.viualization import (
-    plot_series_w_labels,
-    visualize_num_sample_num_epoch,
-)
+from media_frame_transformer.text_samples import load_kfold_text_samples
+from media_frame_transformer.viualization import visualize_num_sample_num_epoch
 
 RNG = Random()
-RNG_SEED = 0xDEADBEEF
 
 _arch = sys.argv[1]
 
-EXPERIMENT_NAME = f"3111.{_arch}"
+EXPERIMENT_NAME = f"5.{_arch}"
 MAX_EPOCH = 20
 
 
@@ -49,11 +30,11 @@ def _train():
     path2datasets = {}
 
     for issue in ISSUES:
-        fold2split2samples = load_kfold_primary_frame_samples([issue], KFOLD)
+        fold2split2samples = load_kfold_text_samples([issue], task="primary_frame")
         num_train_sample = len(fold2split2samples[0]["train"])
         for ki in FOLDS_TO_RUN:
             split2samples = fold2split2samples[ki]
-            RNG.seed(RNG_SEED)
+            RNG.seed(RANDOM_SEED)
             RNG.shuffle(split2samples["train"])
 
             for numsample in DATASET_SIZES:

@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from config import ROBERTA_CLASSFIER_N_CLASSES, VOCAB_SIZE
+from config import ROBERTA_CLASSFIER_N_CLASSES
 from transformers import RobertaModel
 
 from media_frame_transformer.models import register_model

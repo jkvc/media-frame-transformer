@@ -1,23 +1,16 @@
 import sys
 from os.path import join
 
-from config import ISSUES, MODELS_DIR
-
+from config import ARCH, BATCHSIZE, FOLDS_TO_RUN, ISSUES, KFOLD, MODELS_DIR
 from media_frame_transformer.dataset import (
     PrimaryFrameDataset,
     get_kfold_primary_frames_datasets,
-    load_all_primary_frame_samples,
 )
 from media_frame_transformer.eval import reduce_and_save_metrics
-from media_frame_transformer.experiment_config import (
-    ARCH,
-    BATCHSIZE,
-    FOLDS_TO_RUN,
-    KFOLD,
-)
 from media_frame_transformer.experiments import run_experiments
+from media_frame_transformer.text_samples import load_all_text_samples
 
-_arch = sys.argv[1] 
+_arch = sys.argv[1]
 EXPERIMENT_NAME = f"13.{_arch}"
 
 
@@ -29,8 +22,10 @@ def _train():
         # train on all issues other than the holdout one
         train_issues = [iss for iss in ISSUES if iss != holdout_issue]
 
-        kfold_datasets = get_kfold_primary_frames_datasets(train_issues, KFOLD)
-        holdout_issue_all_samples = load_all_primary_frame_samples([holdout_issue])
+        kfold_datasets = get_kfold_primary_frames_datasets(train_issues)
+        holdout_issue_all_samples = load_all_text_samples(
+            [holdout_issue], split="train", task="primary_frame"
+        )
         holdout_issue_dataset = PrimaryFrameDataset(holdout_issue_all_samples)
 
         for ki in FOLDS_TO_RUN:

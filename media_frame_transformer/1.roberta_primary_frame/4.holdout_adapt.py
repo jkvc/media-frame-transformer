@@ -2,31 +2,29 @@ import sys
 from os.path import exists, join
 from random import Random
 
-from config import ISSUES, MODELS_DIR
-
-from media_frame_transformer.dataset import (
-    PrimaryFrameDataset,
-    load_kfold_primary_frame_samples,
-)
-from media_frame_transformer.eval import reduce_and_save_metrics, reduce_tree_inplace
-from media_frame_transformer.experiment_config import (
+from config import (
     BATCHSIZE,
     DATASET_SIZES,
     FOLDS_TO_RUN,
+    ISSUES,
     KFOLD,
+    MODELS_DIR,
+    RANDOM_SEED,
 )
+from media_frame_transformer.dataset import PrimaryFrameDataset
+from media_frame_transformer.eval import reduce_and_save_metrics, reduce_tree_inplace
 from media_frame_transformer.experiments import run_experiments
+from media_frame_transformer.text_samples import load_kfold_text_samples
 from media_frame_transformer.utils import load_json, save_json
 from media_frame_transformer.viualization import visualize_num_sample_num_epoch
 
 RNG = Random()
-RNG_SEED = 0xDEADBEEF
 
 
 _arch = sys.argv[1]
 
-EXPERIMENT_NAME = f"14.{_arch}"
-CHECKPOINT_EXPERIMENT_NAME = f"13f.{_arch}"
+EXPERIMENT_NAME = f"4.{_arch}"
+CHECKPOINT_EXPERIMENT_NAME = f"3f.{_arch}"
 
 MAX_EPOCH = 10
 
@@ -39,10 +37,12 @@ def _train():
     for holdout_issue in ISSUES:
         model_name = f"holdout_{holdout_issue}"
 
-        fold2split2samples = load_kfold_primary_frame_samples([holdout_issue], KFOLD)
+        fold2split2samples = load_kfold_text_samples(
+            [holdout_issue], task="primary_frame"
+        )
         for ki in FOLDS_TO_RUN:
             split2samples = fold2split2samples[ki]
-            RNG.seed(RNG_SEED)
+            RNG.seed(RANDOM_SEED)
             RNG.shuffle(split2samples["train"])
 
             for numsample in DATASET_SIZES:
@@ -101,35 +101,35 @@ if __name__ == "__main__":
         ylabel="valid f1",
     )
 
-    model_root = join(MODELS_DIR, EXPERIMENT_NAME)
-    numepoch2metrics = {
-        epoch: load_json(join(model_root, f"mean_epoch_{epoch}.json"))
-        for epoch in range(MAX_EPOCH)
-        if exists(join(model_root, f"mean_epoch_{epoch}.json"))
-    }
-    numsample2bestvalid = {}
-    bestearlystop_metrics = {}
+    # model_root = join(MODELS_DIR, EXPERIMENT_NAME)
+    # numepoch2metrics = {
+    #     epoch: load_json(join(model_root, f"mean_epoch_{epoch}.json"))
+    #     for epoch in range(MAX_EPOCH)
+    #     if exists(join(model_root, f"mean_epoch_{epoch}.json"))
+    # }
+    # numsample2bestvalid = {}
+    # bestearlystop_metrics = {}
 
-    for numsample in DATASET_SIZES:
-        bestearlystop_metrics[numsample] = {}
-        # best_valids = []
-        for issue in ISSUES:
-            bestearlystop_metrics[numsample][issue] = {}
-            for ki in FOLDS_TO_RUN:
-                valids = []
-                for numepoch in range(MAX_EPOCH):
-                    if numepoch not in numepoch2metrics:
-                        continue
-                    valid = numepoch2metrics[numepoch][f"{numsample:04}_samples"][
-                        f"holdout_{issue}"
-                    ][f"fold_{ki}"]["mean"]["valid_f1"]
-                    valids.append(valid)
-                best_valid = max(valids)
-                bestearlystop_metrics[numsample][issue][ki] = {
-                    "mean": {"best_earlystop_valid_f1": best_valid}
-                }
-                # best_valids.append(best_valid)
-        # numsample2bestvalid[numsample] = sum(best_valids) / len(best_valids)
+    # for numsample in DATASET_SIZES:
+    #     bestearlystop_metrics[numsample] = {}
+    #     # best_valids = []
+    #     for issue in ISSUES:
+    #         bestearlystop_metrics[numsample][issue] = {}
+    #         for ki in FOLDS_TO_RUN:
+    #             valids = []
+    #             for numepoch in range(MAX_EPOCH):
+    #                 if numepoch not in numepoch2metrics:
+    #                     continue
+    #                 valid = numepoch2metrics[numepoch][f"{numsample:04}_samples"][
+    #                     f"holdout_{issue}"
+    #                 ][f"fold_{ki}"]["mean"]["valid_f1"]
+    #                 valids.append(valid)
+    #             best_valid = max(valids)
+    #             bestearlystop_metrics[numsample][issue][ki] = {
+    #                 "mean": {"best_earlystop_valid_f1": best_valid}
+    #             }
+    #             # best_valids.append(best_valid)
+    #     # numsample2bestvalid[numsample] = sum(best_valids) / len(best_valids)
 
-    reduce_tree_inplace(bestearlystop_metrics)
-    save_json(bestearlystop_metrics, join(model_root, "best_earlystop.json"))
+    # reduce_tree_inplace(bestearlystop_metrics)
+    # save_json(bestearlystop_metrics, join(model_root, "best_earlystop.json"))
