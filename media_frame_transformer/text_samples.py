@@ -16,8 +16,6 @@ class TextSample:
     text: str
     code: float
     issue: str
-    # subframes: Set[int]
-    # weight: float = 1
 
 
 def load_all_text_samples(issues: List[str], split: str, task: str) -> List[TextSample]:
@@ -30,7 +28,6 @@ def load_all_text_samples(issues: List[str], split: str, task: str) -> List[Text
             join(DATA_DIR, "framing_labeled", f"{issue}_{split}_sets.json")
         )[task]
         raw_data = load_json(join(DATA_DIR, "framing_labeled", f"{issue}_labeled.json"))
-        # articleid2subframes = load_json(join(DATA_DIR, "subframes", f"{issue}.json"))
 
         for id in ids:
             samples.append(
@@ -39,8 +36,6 @@ def load_all_text_samples(issues: List[str], split: str, task: str) -> List[Text
                     text=clean_text(raw_data[id]["text"]),
                     code=raw_data[id]["primary_frame"],
                     issue=issue,
-                    # subframes=set(articleid2subframes[id]),
-                    # weight=1,
                 )
             )
     return samples

@@ -31,23 +31,37 @@ def idx_to_frame_name(idx) -> str:
     return CODES[f"{idx+1}.0"]
 
 
+def load_labelprops(source_name):
+    return {
+        issue: np.array(labelprops)
+        for issue, labelprops in load_json(
+            join(DATA_DIR, "labelprops", f"{source_name}.json")
+        )
+    }
+
+
 class PrimaryFrameDataset(Dataset):
     def __init__(
         self,
         samples: List[TextSample],
-        issue2labelprops_override: Optional[Dict[str, np.ndarray]] = None,
+        labelprops_source: str = "estimated",
     ):
         self.samples: List[TextSample] = samples
-        if issue2labelprops_override is not None:
-            self.issue2labelprops = issue2labelprops_override
-        else:
-            issue2labelcounts = {issue: np.zeros((N_CLASSES,)) for issue in ISSUES}
+
+        if labelprops_source in {"train_all"}:
+            self.issue2labelprops = load_labelprops(labelprops_source)
+        elif labelprops_source == "estimated":
+            issue2labelcounts = {
+                issue: (np.zeros((N_CLASSES,)) + 1e-8) for issue in ISSUES
+            }
             for s in samples:
                 issue2labelcounts[s.issue][primary_frame_code_to_cidx(s.code)] += 1
             self.issue2labelprops = {
-                issue: labelcounts / (labelcounts.sum() + 1e-8)
+                issue: labelcounts / (labelcounts.sum())
                 for issue, labelcounts in issue2labelcounts.items()
             }
+        else:
+            raise NotImplementedError()
 
         self.tokenizer = None
 
