@@ -1,13 +1,14 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from config import ROBERTA_CLASSFIER_N_CLASSES
 from transformers import RobertaModel
 
 from media_frame_transformer.models import register_model
+from media_frame_transformer.models_common import (
+    MULTICLASS_STRATEGY,
+    calc_multiclass_loss,
+)
 from media_frame_transformer.utils import DEVICE
-
-MULTICLASS_STRATEGY = ["multinomial", "ovr"]
 
 
 class RobertaFrameClassifier(nn.Module):
@@ -52,21 +53,8 @@ class RobertaFrameClassifier(nn.Module):
             logits = logits + torch.log(label_distribution.to(DEVICE).to(torch.float))
 
         labels = batch["y"].to(DEVICE)
-
-        # calculate loss
-        if self.multiclass_strategy == "multinomial":
-            loss = F.cross_entropy(logits, labels, reduction="none")
-        elif self.multiclass_strategy == "ovr":
-            # convert label to one-hot
-            labels = (
-                torch.eye(ROBERTA_CLASSFIER_N_CLASSES)
-                .to(DEVICE)[labels]
-                .to(torch.float)
-            )
-            loss = F.binary_cross_entropy_with_logits(logits, labels, reduction="none")
-            loss = loss.mean(dim=-1)
-
-        loss = (loss).mean()
+        loss = calc_multiclass_loss(logits, labels, self.multiclass_strategy)
+        loss = loss.mean()
 
         return {
             "logits": logits,

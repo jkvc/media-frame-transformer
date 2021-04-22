@@ -3,7 +3,7 @@ from os.path import dirname, exists, join
 from typing import Dict, List, Optional
 
 import numpy as np
-from config import DATA_DIR, ISSUES
+from config import DATA_DIR, ISSUES, N_CLASSES
 from torch.utils.data import Dataset
 from transformers import RobertaTokenizerFast
 
@@ -16,7 +16,24 @@ from media_frame_transformer.utils import load_json, save_json
 
 INPUT_N_TOKEN = 512
 PAD_TOK_IDX = 1
-N_CLASSES = 15
+
+PRIMARY_FRAME_NAMES = [
+    "Economic",
+    "Capacity and Resources",
+    "Morality",
+    "Fairness and Equality",
+    "Legality, Constitutionality, Jurisdiction",
+    "Policy Prescription and Evaluation",
+    "Crime and Punishment",
+    "Security and Defense",
+    "Health and Safety",
+    "Quality of Life",
+    "Cultural Identity",
+    "Public Sentiment",
+    "Political",
+    "External Regulation and Reputation",
+    "Other",
+]
 
 
 def primary_frame_code_to_cidx(frame_float: float) -> int:
@@ -24,16 +41,6 @@ def primary_frame_code_to_cidx(frame_float: float) -> int:
     assert frame_float != 0
     assert frame_float < 16
     return int(frame_float) - 1
-
-
-CODES = None
-
-
-def idx_to_frame_name(idx) -> str:
-    global CODES
-    if CODES == None:
-        CODES = load_json(join(DATA_DIR, "framing_labeled", "codes.json"))
-    return CODES[f"{idx+1}.0"]
 
 
 def calculate_primary_frame_labelprops(samples):

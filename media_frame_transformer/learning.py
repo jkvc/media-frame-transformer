@@ -167,7 +167,7 @@ def valid_epoch(model, valid_loader, writer=None, epoch_idx=None, valid_set_name
 
         valid_loss = (total_loss / total_n_samples).item()
 
-        f1, precision, recall = _calc_f1(all_logits, all_labels)
+        f1, precision, recall = calc_f1(all_logits, all_labels)
 
         if writer is not None and epoch_idx is not None:
             writer.add_scalar(
@@ -224,7 +224,7 @@ def train_epoch(model, optimizer, train_loader, writer=None, epoch_idx=None):
 
     loss = total_loss / total_n_samples
 
-    f1, precision, recall = _calc_f1(all_logits, all_labels)
+    f1, precision, recall = calc_f1(all_logits, all_labels)
     metrics = {
         "loss": loss,
         "precision": precision,
@@ -240,7 +240,7 @@ def _print_metrics(metrics):
         print("--", k.rjust(10), ":", v)
 
 
-def _calc_f1(all_logits, all_labels):
+def calc_f1(all_logits, all_labels):
     if isinstance(all_logits, list):
         all_logits = np.concatenate(all_logits, axis=0)
     if isinstance(all_labels, list):
