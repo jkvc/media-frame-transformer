@@ -1,4 +1,5 @@
-from os.path import join
+from os import makedirs
+from os.path import dirname, exists, join
 from typing import Dict, List, Optional
 
 import numpy as np
@@ -6,8 +7,12 @@ from config import DATA_DIR, ISSUES
 from torch.utils.data import Dataset
 from transformers import RobertaTokenizerFast
 
-from media_frame_transformer.text_samples import TextSample, load_kfold_text_samples
-from media_frame_transformer.utils import load_json
+from media_frame_transformer.text_samples import (
+    TextSample,
+    load_all_text_samples,
+    load_kfold_text_samples,
+)
+from media_frame_transformer.utils import load_json, save_json
 
 INPUT_N_TOKEN = 512
 PAD_TOK_IDX = 1
@@ -31,13 +36,29 @@ def idx_to_frame_name(idx) -> str:
     return CODES[f"{idx+1}.0"]
 
 
-def load_labelprops(source_name):
-    return {
-        issue: np.array(labelprops)
-        for issue, labelprops in load_json(
-            join(DATA_DIR, "labelprops", f"{source_name}.json")
+def get_primary_frame_labelprops_full_split(split):
+    labelprops_path = join(DATA_DIR, "labelprops_primary_frame", f"{split}.json")
+
+    if exists(labelprops_path):
+        return {
+            issue: np.array(labelprops)
+            for issue, labelprops in load_json(labelprops_path).items()
+        }
+    else:
+        samples = load_all_text_samples(ISSUES, split="train", task="primary_frame")
+        dataset = PrimaryFrameDataset(
+            samples,
+            labelprops_source="estimated",
         )
-    }
+        makedirs(dirname(labelprops_path), exist_ok=True)
+        save_json(
+            {
+                issue: labelprops.tolist()
+                for issue, labelprops in dataset.issue2labelprops.items()
+            },
+            labelprops_path,
+        )
+        return dataset.issue2labelprops
 
 
 class PrimaryFrameDataset(Dataset):
@@ -48,8 +69,10 @@ class PrimaryFrameDataset(Dataset):
     ):
         self.samples: List[TextSample] = samples
 
-        if labelprops_source in {"train_all"}:
-            self.issue2labelprops = load_labelprops(labelprops_source)
+        if labelprops_source in {"train"}:
+            self.issue2labelprops = get_primary_frame_labelprops_full_split(
+                labelprops_source
+            )
         elif labelprops_source == "estimated":
             issue2labelcounts = {
                 issue: (np.zeros((N_CLASSES,)) + 1e-8) for issue in ISSUES

@@ -48,8 +48,12 @@ def _train():
             for numsample in DATASET_SIZES:
                 train_samples = split2samples["train"][:numsample]
                 valid_samples = split2samples["valid"]
-                train_dataset = PrimaryFrameDataset(train_samples)
-                valid_dataset = PrimaryFrameDataset(valid_samples)
+                train_dataset = PrimaryFrameDataset(
+                    train_samples, labelprops_source="train"
+                )
+                valid_dataset = PrimaryFrameDataset(
+                    valid_samples, labelprops_source="train"
+                )
 
                 save_dir = join(
                     MODELS_DIR,
