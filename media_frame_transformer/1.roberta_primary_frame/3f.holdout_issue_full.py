@@ -6,8 +6,13 @@ from pprint import pprint
 from random import Random
 
 import media_frame_transformer.models_roberta  # noqa
-from config import BATCHSIZE, ISSUES, MODELS_DIR
-from media_frame_transformer.dataset import PrimaryFrameDataset
+import numpy as np
+import torch
+from config import BATCHSIZE, DATASET_SIZES, ISSUES, MODELS_DIR
+from media_frame_transformer.dataset import (
+    PrimaryFrameDataset,
+    calculate_primary_frame_labelprops,
+)
 from media_frame_transformer.eval import reduce_and_save_metrics
 from media_frame_transformer.experiments import run_experiments
 from media_frame_transformer.learning import (
@@ -16,16 +21,18 @@ from media_frame_transformer.learning import (
     valid_epoch,
 )
 from media_frame_transformer.text_samples import load_all_text_samples
+from media_frame_transformer.utils import DEVICE, save_json
+from torch.utils.data import DataLoader
 
 _arch = sys.argv[1]
 EXPERIMENT_NAME = f"3f.{_arch}"
 
 
-# RNG = Random()
-# RNG_SEED = 0xDEADBEEF
-# RNG.seed(RNG_SEED)
+RNG = Random()
+RNG_SEED = 0xDEADBEEF
+RNG.seed(RNG_SEED)
 
-# DISTR_WRONGNESS_NUM_TRIALS = 5
+NTRIALS_EVAL_UNSEEN_ESTIMATED_DISTRIBUTION = 5
 
 
 def _train():
@@ -62,46 +69,50 @@ def _train():
     )
 
 
-# def _eval_distribution_wrongness():
-#     issue2samplesize2trial2f1 = defaultdict(lambda: defaultdict(dict))
-#     for issue in ISSUES:
-#         model = torch.load(
-#             join(MODELS_DIR, EXPERIMENT_NAME, f"holdout_{issue}", "checkpoint.pth")
-#         ).to(DEVICE)
+def _eval_unseen_estimated_distribution():
+    issue2samplesize2trial2f1 = defaultdict(lambda: defaultdict(dict))
+    for issue in ISSUES:
+        model = torch.load(
+            join(MODELS_DIR, EXPERIMENT_NAME, f"holdout_{issue}", "checkpoint.pth")
+        ).to(DEVICE)
 
-#         all_samples = load_all_text_samples(
-#             [issue],
-#             split="train",
-#             task="primary_frame",
-#         )
-#         for trial in range(DISTR_WRONGNESS_NUM_TRIALS):
-#             RNG.shuffle(all_samples)
+        all_holdout_issue_samples = load_all_text_samples(
+            [issue],
+            split="train",
+            task="primary_frame",
+        )
+        dataset = PrimaryFrameDataset(all_holdout_issue_samples)
 
-#             for numsample in DATASET_SIZES:
-#                 selected_samples = all_samples[:numsample]
-#                 props = np.zeros((15,)) + 1e-8
-#                 for sample in selected_samples:
-#                     props[frame_code_to_idx(sample.code)] += 1
-#                 props = props / props.sum()
+        for trial in range(NTRIALS_EVAL_UNSEEN_ESTIMATED_DISTRIBUTION):
+            RNG.shuffle(all_holdout_issue_samples)
 
-#                 dataset = PrimaryFrameDataset(
-#                     all_samples, issue2props_override={issue: props}
-#                 )
-#                 loader = DataLoader(
-#                     dataset, batch_size=VALID_BATCHSIZE, num_workers=N_DATALOADER_WORKER
-#                 )
-#                 metrics = valid_epoch(model, loader)
-#                 issue2samplesize2trial2f1[issue][numsample][trial] = metrics["f1"]
+            for numsample in DATASET_SIZES:
+                selected_samples = all_holdout_issue_samples[:numsample]
+                estimated_issue2labelprops = calculate_primary_frame_labelprops(
+                    selected_samples
+                )
+                dataset.issue2labelprops = estimated_issue2labelprops
+                loader = DataLoader(
+                    dataset, batch_size=VALID_BATCHSIZE, num_workers=N_DATALOADER_WORKER
+                )
+                metrics = valid_epoch(model, loader)
+                issue2samplesize2trial2f1[issue][numsample][trial] = metrics["f1"]
 
-#             pprint(issue2samplesize2trial2f1)
+            pprint(issue2samplesize2trial2f1)
 
-#     savedir = join(OUTPUTS_DIR, _arch)
-#     makedirs(savedir, exist_ok=True)
-#     savepath = join(savedir, "13f_distr_wrongness.json")
-#     save_json(dict(issue2samplesize2trial2f1), savepath)
+    save_json(
+        dict(issue2samplesize2trial2f1),
+        join(
+            MODELS_DIR,
+            EXPERIMENT_NAME,
+            "estimated_distribution_f1.json",
+        ),
+    )
 
 
 if __name__ == "__main__":
     _train()
-    # _eval_distribution_wrongness()
     reduce_and_save_metrics(join(MODELS_DIR, EXPERIMENT_NAME))
+
+    if _arch.endswith("+dev"):
+        _eval_unseen_estimated_distribution()

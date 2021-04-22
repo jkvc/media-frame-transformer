@@ -36,6 +36,16 @@ def idx_to_frame_name(idx) -> str:
     return CODES[f"{idx+1}.0"]
 
 
+def calculate_primary_frame_labelprops(samples):
+    issue2labelcounts = {issue: (np.zeros((N_CLASSES,)) + 1e-8) for issue in ISSUES}
+    for s in samples:
+        issue2labelcounts[s.issue][primary_frame_code_to_cidx(s.code)] += 1
+    return {
+        issue: labelcounts / (labelcounts.sum())
+        for issue, labelcounts in issue2labelcounts.items()
+    }
+
+
 def get_primary_frame_labelprops_full_split(split):
     labelprops_path = join(DATA_DIR, "labelprops_primary_frame", f"{split}.json")
 
@@ -46,19 +56,16 @@ def get_primary_frame_labelprops_full_split(split):
         }
     else:
         samples = load_all_text_samples(ISSUES, split="train", task="primary_frame")
-        dataset = PrimaryFrameDataset(
-            samples,
-            labelprops_source="estimated",
-        )
+        issue2labelprops = calculate_primary_frame_labelprops(samples)
         makedirs(dirname(labelprops_path), exist_ok=True)
         save_json(
             {
                 issue: labelprops.tolist()
-                for issue, labelprops in dataset.issue2labelprops.items()
+                for issue, labelprops in issue2labelprops.items()
             },
             labelprops_path,
         )
-        return dataset.issue2labelprops
+        return issue2labelprops
 
 
 class PrimaryFrameDataset(Dataset):
@@ -74,15 +81,7 @@ class PrimaryFrameDataset(Dataset):
                 labelprops_source
             )
         elif labelprops_source == "estimated":
-            issue2labelcounts = {
-                issue: (np.zeros((N_CLASSES,)) + 1e-8) for issue in ISSUES
-            }
-            for s in samples:
-                issue2labelcounts[s.issue][primary_frame_code_to_cidx(s.code)] += 1
-            self.issue2labelprops = {
-                issue: labelcounts / (labelcounts.sum())
-                for issue, labelcounts in issue2labelcounts.items()
-            }
+            self.issue2labelcounts = calculate_primary_frame_labelprops(samples)
         else:
             raise NotImplementedError()
 

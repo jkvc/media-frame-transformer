@@ -85,6 +85,37 @@ def _train():
     )
 
 
+def calculate_best_earlystop_metrics():
+    model_root = join(MODELS_DIR, EXPERIMENT_NAME)
+    numepoch2metrics = {
+        epoch: load_json(join(model_root, f"mean_epoch_{epoch}.json"))
+        for epoch in range(MAX_EPOCH)
+        if exists(join(model_root, f"mean_epoch_{epoch}.json"))
+    }
+    bestearlystop_metrics = {}
+
+    for numsample in DATASET_SIZES:
+        bestearlystop_metrics[numsample] = {}
+        for issue in ISSUES:
+            bestearlystop_metrics[numsample][issue] = {}
+            for ki in FOLDS_TO_RUN:
+                valids = []
+                for numepoch in range(MAX_EPOCH):
+                    if numepoch not in numepoch2metrics:
+                        continue
+                    valid = numepoch2metrics[numepoch][f"{numsample:04}_samples"][
+                        f"holdout_{issue}"
+                    ][f"fold_{ki}"]["mean"]["valid_f1"]
+                    valids.append(valid)
+                best_valid = max(valids)
+                bestearlystop_metrics[numsample][issue][ki] = {
+                    "mean": {"best_earlystop_valid_f1": best_valid}
+                }
+
+    reduce_tree_inplace(bestearlystop_metrics)
+    save_json(bestearlystop_metrics, join(model_root, "best_earlystop.json"))
+
+
 if __name__ == "__main__":
     _train()
     reduce_and_save_metrics(join(MODELS_DIR, EXPERIMENT_NAME))
@@ -105,35 +136,4 @@ if __name__ == "__main__":
         ylabel="valid f1",
     )
 
-    # model_root = join(MODELS_DIR, EXPERIMENT_NAME)
-    # numepoch2metrics = {
-    #     epoch: load_json(join(model_root, f"mean_epoch_{epoch}.json"))
-    #     for epoch in range(MAX_EPOCH)
-    #     if exists(join(model_root, f"mean_epoch_{epoch}.json"))
-    # }
-    # numsample2bestvalid = {}
-    # bestearlystop_metrics = {}
-
-    # for numsample in DATASET_SIZES:
-    #     bestearlystop_metrics[numsample] = {}
-    #     # best_valids = []
-    #     for issue in ISSUES:
-    #         bestearlystop_metrics[numsample][issue] = {}
-    #         for ki in FOLDS_TO_RUN:
-    #             valids = []
-    #             for numepoch in range(MAX_EPOCH):
-    #                 if numepoch not in numepoch2metrics:
-    #                     continue
-    #                 valid = numepoch2metrics[numepoch][f"{numsample:04}_samples"][
-    #                     f"holdout_{issue}"
-    #                 ][f"fold_{ki}"]["mean"]["valid_f1"]
-    #                 valids.append(valid)
-    #             best_valid = max(valids)
-    #             bestearlystop_metrics[numsample][issue][ki] = {
-    #                 "mean": {"best_earlystop_valid_f1": best_valid}
-    #             }
-    #             # best_valids.append(best_valid)
-    #     # numsample2bestvalid[numsample] = sum(best_valids) / len(best_valids)
-
-    # reduce_tree_inplace(bestearlystop_metrics)
-    # save_json(bestearlystop_metrics, join(model_root, "best_earlystop.json"))
+    calculate_best_earlystop_metrics()
