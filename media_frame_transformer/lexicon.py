@@ -9,6 +9,7 @@ import torch
 from config import VOCAB_SIZE
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
+from nltk.tokenize import word_tokenize
 from torch.optim import AdamW
 from tqdm import tqdm, trange
 
@@ -24,6 +25,7 @@ from media_frame_transformer.text_samples import TextSample
 from media_frame_transformer.utils import DEVICE, save_json, write_str_list_as_txt
 
 STOPWORDS = stopwords.words("english")
+DEFAULT_WEIGHT_DECAY = 1
 
 
 def get_tokens(cleaned_text: str) -> List[str]:
@@ -34,28 +36,33 @@ def get_tokens(cleaned_text: str) -> List[str]:
     return tokens
 
 
-def build_lemma_vocab(
-    samples: List[TextSample],
-) -> Tuple[List[str], Dict[str, int], List[List[str]]]:
+def lemmatize(samples: List[TextSample]) -> List[List[str]]:
     lemmeatizer = WordNetLemmatizer()
     all_lemmas = [
         [lemmeatizer.lemmatize(w) for w in get_tokens(sample.text)]
         for sample in tqdm(samples)
     ]
+    return all_lemmas
+
+
+def build_lemma_vocab(
+    samples: List[TextSample],
+) -> Tuple[List[str], Dict[str, int], List[List[str]]]:
+    all_lemmas = lemmatize(samples)
     word2count = Counter()
     for lemmas in all_lemmas:
         word2count.update(lemmas)
     vocab = [w for w, c in word2count.most_common(VOCAB_SIZE)]
-    word2idx = {w: i for i, w in enumerate(vocab)}
 
-    return vocab, word2idx, all_lemmas
+    return vocab, all_lemmas
 
 
 def build_bow_xys(
     samples: List[TextSample],
     all_lemmas: List[List[str]],
-    word2idx: Dict[str, int],
+    vocab: List[str],
 ) -> Tuple[np.array, np.array]:
+    word2idx = {w: i for i, w in enumerate(vocab)}
     X = np.zeros((len(samples), len(word2idx)))
     y = np.zeros((len(samples),))
 
@@ -69,12 +76,12 @@ def build_bow_xys(
     return X, y
 
 
-def train_lexicon_model(arch, samples):
-    vocab, word2idx, all_lemmas = build_lemma_vocab(samples)
-    X, y = build_bow_xys(samples, all_lemmas, word2idx)
+def train_lexicon_model(arch, train_samples, weight_decay):
+    vocab, all_lemmas = build_lemma_vocab(train_samples)
+    X, y = build_bow_xys(train_samples, all_lemmas, vocab)
 
     issue2labelprops = get_primary_frame_labelprops_full_split("train")
-    labelprops = np.array([issue2labelprops[s.issue] for s in samples])
+    labelprops = np.array([issue2labelprops[s.issue] for s in train_samples])
     train_batch = {
         "x": torch.Tensor(X),
         "y": torch.LongTensor(y),
@@ -84,7 +91,7 @@ def train_lexicon_model(arch, samples):
     model = get_model(arch).to(DEVICE)
     model.train()
 
-    optimizer = AdamW(model.parameters(), lr=1e-2, weight_decay=0.5)
+    optimizer = AdamW(model.parameters(), lr=1e-2, weight_decay=weight_decay)
 
     for e in trange(3000):
         optimizer.zero_grad()
@@ -103,16 +110,41 @@ def train_lexicon_model(arch, samples):
     return vocab, model, metrics
 
 
-def run_lexicon_experiment(arch, samples, logdir):
+def eval_lexicon_model(model, valid_samples, vocab):
+    X, y = build_bow_xys(valid_samples, lemmatize(valid_samples), vocab)
+    issue2labelprops = get_primary_frame_labelprops_full_split("train")
+    labelprops = np.array([issue2labelprops[s.issue] for s in valid_samples])
+    valid_batch = {
+        "x": torch.Tensor(X),
+        "y": torch.LongTensor(y),
+        "label_distribution": torch.FloatTensor(labelprops),
+    }
+
+    with torch.no_grad():
+        outputs = model(valid_batch)
+
+    f1, precision, recall = calc_f1(
+        outputs["logits"].detach().cpu().numpy(),
+        outputs["labels"].detach().cpu().numpy(),
+    )
+    metrics = {"f1": f1, "precision": precision, "recall": recall}
+
+    return metrics
+
+
+def run_lexicon_experiment(
+    arch, train_samples, logdir, weight_decay=DEFAULT_WEIGHT_DECAY
+):
     assert arch in get_model_names()
 
+    vocab, model, metrics = train_lexicon_model(arch, train_samples, weight_decay)
+
     makedirs(logdir, exist_ok=True)
-
-    vocab, model, metrics = train_lexicon_model(arch, samples)
-
     write_str_list_as_txt(vocab, join(logdir, "vocab.txt"))
     torch.save(model, join(logdir, "model.pth"))
     save_json(metrics, join(logdir, "leaf_metrics.json"))
 
     df = model.get_weighted_lexicon(vocab, PRIMARY_FRAME_NAMES)
     df.to_csv(join(logdir, "lexicon.csv"), index=False)
+
+    return vocab, model, metrics

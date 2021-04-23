@@ -17,4 +17,4 @@ def calc_multiclass_loss(logits, labels, multiclass_strategy):
         loss = loss.mean(dim=-1)
     else:
         raise NotImplementedError()
-    return loss
+    return loss, labels

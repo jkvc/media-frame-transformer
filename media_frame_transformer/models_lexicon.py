@@ -43,7 +43,7 @@ class LexiconModel(nn.Module):
             logits = logits + torch.log(label_distribution.to(DEVICE).to(torch.float))
 
         labels = batch["y"].to(DEVICE)
-        loss = calc_multiclass_loss(logits, labels, self.multiclass_strategy)
+        loss, labels = calc_multiclass_loss(logits, labels, self.multiclass_strategy)
         loss = loss.mean()
 
         return {
