@@ -1,0 +1,70 @@
+{
+    "holdout_climate": {
+        "mean": {
+            "train_f1": 0.829902058764741,
+            "train_precision": 0.8299020587647411,
+            "train_recall": 0.8299020587647411,
+            "valid_f1": 0.4092226613965744,
+            "valid_precision": 0.4092226613965744,
+            "valid_recall": 0.4092226613965744
+        }
+    },
+    "holdout_deathpenalty": {
+        "mean": {
+            "train_f1": 0.8440458594655056,
+            "train_precision": 0.8440458594655056,
+            "train_recall": 0.8440458594655056,
+            "valid_f1": 0.42944135557320623,
+            "valid_precision": 0.42944135557320623,
+            "valid_recall": 0.42944135557320623
+        }
+    },
+    "holdout_guncontrol": {
+        "mean": {
+            "train_f1": 0.8820894052776683,
+            "train_precision": 0.8820894052776683,
+            "train_recall": 0.8820894052776683,
+            "valid_f1": 0.4714050364791716,
+            "valid_precision": 0.4714050364791716,
+            "valid_recall": 0.4714050364791716
+        }
+    },
+    "holdout_immigration": {
+        "mean": {
+            "train_f1": 0.8611504919018774,
+            "train_precision": 0.8611504919018774,
+            "train_recall": 0.8611504919018774,
+            "valid_f1": 0.4395445508765588,
+            "valid_precision": 0.4395445508765588,
+            "valid_recall": 0.4395445508765588
+        }
+    },
+    "holdout_samesex": {
+        "mean": {
+            "train_f1": 0.8301279472117166,
+            "train_precision": 0.8301279472117165,
+            "train_recall": 0.8301279472117165,
+            "valid_f1": 0.5930232558139535,
+            "valid_precision": 0.5930232558139535,
+            "valid_recall": 0.5930232558139535
+        }
+    },
+    "holdout_tobacco": {
+        "mean": {
+            "train_f1": 0.8303924253687547,
+            "train_precision": 0.8303924253687547,
+            "train_recall": 0.8303924253687547,
+            "valid_f1": 0.5016917871424177,
+            "valid_precision": 0.5016917871424177,
+            "valid_recall": 0.5016917871424177
+        }
+    },
+    "mean": {
+        "train_f1": 0.8462846979983771,
+        "train_precision": 0.8462846979983771,
+        "train_recall": 0.8462846979983771,
+        "valid_f1": 0.47405477454698036,
+        "valid_precision": 0.47405477454698036,
+        "valid_recall": 0.47405477454698036
+    }
+}

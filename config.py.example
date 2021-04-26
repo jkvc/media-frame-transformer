@@ -1,14 +1,17 @@
 from os.path import dirname, join, realpath
 
 REPO_ROOT = dirname(realpath(__file__))
+
 DATA_DIR = join(REPO_ROOT, "data")
+FIGURES_DIR = join(REPO_ROOT, "figures")
+OUTPUTS_DIR = join(REPO_ROOT, "outputs")
+LEX_DIR = join(REPO_ROOT, "lexicons")
+
 MODELS_DIR = join(REPO_ROOT, "models")
 # MODELS_DIR = "/juice/scr/jkc1/models"  # cluster
 
-FRAMING_DATA_DIR = join(DATA_DIR, "framing_labeled")
-AUG_SINGLE_SPANS_DIR = join(DATA_DIR, "aug_single_spans")
-AUG_MULTI_SPANS_DIR = join(DATA_DIR, "aug_multi_spans")
 
+RANDOM_SEED = 0xDEADBEEF
 
 ISSUES = [
     "climate",
@@ -18,3 +21,14 @@ ISSUES = [
     "samesex",
     "tobacco",
 ]
+
+KFOLD = 8
+FOLDS_TO_RUN = [0, 1, 2]
+# FOLDS_TO_RUN = [0, 1, 2, 3, 4, 5, 6, 7]
+
+N_CLASSES = 15
+BATCHSIZE = 25
+
+DATASET_SIZES = [125, 250, 500, 1000]
+
+VOCAB_SIZE = 2000

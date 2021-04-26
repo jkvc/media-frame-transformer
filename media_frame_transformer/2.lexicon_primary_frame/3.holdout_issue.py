@@ -9,7 +9,8 @@ from media_frame_transformer.utils import save_json
 
 _arch = sys.argv[1]
 
-WEIGHT_DECAYS = [1, 2, 3, 4, 5]
+WEIGHT_DECAYS = [2, 3, 4, 5]
+WEIGHT_DECAYS = [1]
 
 if __name__ == "__main__":
     for weight_decay in WEIGHT_DECAYS:
@@ -28,6 +29,7 @@ if __name__ == "__main__":
                 _arch,
                 train_samples,
                 logdir,
+                weight_decay=weight_decay,
             )
 
             valid_samples = load_all_text_samples(

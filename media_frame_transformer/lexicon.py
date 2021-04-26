@@ -10,7 +10,7 @@ from config import VOCAB_SIZE
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 from nltk.tokenize import word_tokenize
-from torch.optim import AdamW
+from torch.optim import SGD, AdamW
 from tqdm import tqdm, trange
 
 import media_frame_transformer.models_lexicon  # noqa
@@ -76,29 +76,50 @@ def build_bow_xys(
     return X, y
 
 
-def train_lexicon_model(arch, train_samples, weight_decay):
+def train_lexicon_model(
+    arch,
+    train_samples,
+    weight_decay,
+    num_early_stop_non_improve_epoch=15,
+):
     vocab, all_lemmas = build_lemma_vocab(train_samples)
     X, y = build_bow_xys(train_samples, all_lemmas, vocab)
 
     issue2labelprops = get_primary_frame_labelprops_full_split("train")
     labelprops = np.array([issue2labelprops[s.issue] for s in train_samples])
-    train_batch = {
-        "x": torch.Tensor(X),
-        "y": torch.LongTensor(y),
-        "label_distribution": torch.FloatTensor(labelprops),
-    }
 
     model = get_model(arch).to(DEVICE)
     model.train()
 
-    optimizer = AdamW(model.parameters(), lr=1e-2, weight_decay=weight_decay)
+    optimizer = AdamW(model.parameters(), lr=1e-3, weight_decay=weight_decay)
+    # optimizer = SGD(model.parameters(), lr=1e-3, weight_decay=weight_decay)
 
-    for e in trange(3000):
+    best_loss = float("inf")
+    num_non_improve_epoch = 0
+
+    for e in trange(5000):
+        chosen = np.random.choice(len(y), size=len(y) // 2, replace=False)
+
+        train_batch = {
+            "x": torch.Tensor(X[chosen]),
+            "y": torch.LongTensor(y[chosen]),
+            "label_distribution": torch.FloatTensor(labelprops[chosen]),
+        }
+
         optimizer.zero_grad()
         outputs = model(train_batch)
         loss = outputs["loss"]
         loss.backward()
         optimizer.step()
+
+        loss = loss.item()
+        if loss < best_loss:
+            best_loss = loss
+            num_non_improve_epoch = 0
+        else:
+            num_non_improve_epoch += 1
+            if num_non_improve_epoch >= num_early_stop_non_improve_epoch:
+                break
 
     train_outputs = model(train_batch)
     f1, precision, recall = calc_f1(
@@ -127,7 +148,12 @@ def eval_lexicon_model(model, valid_samples, vocab):
         outputs["logits"].detach().cpu().numpy(),
         outputs["labels"].detach().cpu().numpy(),
     )
-    metrics = {"f1": f1, "precision": precision, "recall": recall}
+
+    # single label acc, regardless whether classifier is fitting ovr or multinomial
+    preds = np.argmax(outputs["logits"].detach().cpu().numpy(), axis=-1)
+    acc = (preds == y).sum() / len(y)
+
+    metrics = {"f1": f1, "precision": precision, "recall": recall, "acc": acc}
 
     return metrics
 

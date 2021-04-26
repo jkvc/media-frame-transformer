@@ -9,4 +9,4 @@ _arch = sys.argv[1]
 
 if __name__ == "__main__":
     samples = load_all_text_samples(ISSUES, "train", "primary_frame")
-    run_lexicon_experiment(_arch, samples, join(LEX_DIR, f"2.{_arch}"))
+    run_lexicon_experiment(_arch, samples, join(LEX_DIR, f"2.{_arch}"), weight_decay=3)
