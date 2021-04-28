@@ -20,8 +20,6 @@ def _train():
     path2datasets = {}
 
     for issue in ISSUES:
-        model_name = f"holdout_{issue}"
-
         train_issues_all_samples = load_all_text_samples(
             [issue],
             split="train",
@@ -37,7 +35,7 @@ def _train():
         )
         holdout_issue_dataset = PrimaryFrameDataset(holdout_issue_all_samples)
 
-        path2datasets[join(MODELS_DIR, EXPERIMENT_NAME, model_name)] = {
+        path2datasets[join(MODELS_DIR, EXPERIMENT_NAME, issue)] = {
             "train": train_issue_dataset,
             "valid": holdout_issue_dataset,
         }
