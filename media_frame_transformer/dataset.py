@@ -88,7 +88,7 @@ class PrimaryFrameDataset(Dataset):
                 labelprops_source
             )
         elif labelprops_source == "estimated":
-            self.issue2labelcounts = calculate_primary_frame_labelprops(samples)
+            self.issue2labelprops = calculate_primary_frame_labelprops(samples)
         else:
             raise NotImplementedError()
 
