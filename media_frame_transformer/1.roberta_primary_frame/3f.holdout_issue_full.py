@@ -65,7 +65,6 @@ def _train():
         path2datasets,
         batchsize=BATCHSIZE,
         num_early_stop_non_improve_epoch=7,
-        max_epochs=10,
     )
 
 
