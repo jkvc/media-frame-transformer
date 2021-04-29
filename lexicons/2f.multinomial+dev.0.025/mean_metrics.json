@@ -1,0 +1,42 @@
+{
+    "holdout_climate": {
+        "mean": {
+            "train_acc": 0.8250099880143827,
+            "valid_acc": 0.5072463768115942
+        }
+    },
+    "holdout_deathpenalty": {
+        "mean": {
+            "train_acc": 0.8344778026189715,
+            "valid_acc": 0.4604183214191157
+        }
+    },
+    "holdout_guncontrol": {
+        "mean": {
+            "train_acc": 0.8492645250159886,
+            "valid_acc": 0.5653094845846082
+        }
+    },
+    "holdout_immigration": {
+        "mean": {
+            "train_acc": 0.840889575820024,
+            "valid_acc": 0.5037050424724381
+        }
+    },
+    "holdout_samesex": {
+        "mean": {
+            "train_acc": 0.8262093369254896,
+            "valid_acc": 0.6256319514661274
+        }
+    },
+    "holdout_tobacco": {
+        "mean": {
+            "train_acc": 0.8269727066551967,
+            "valid_acc": 0.5490618271301139
+        }
+    },
+    "mean": {
+        "train_acc": 0.833803989175009,
+        "valid_acc": 0.5352288339806662
+    }
+}
