@@ -26,8 +26,8 @@ class LexiconModel(nn.Module):
         assert multiclass_strategy in MULTICLASS_STRATEGY
         self.multiclass_strategy = multiclass_strategy
 
-        use_bias = not use_label_distribution_deviation
-        self.ff = nn.Linear(VOCAB_SIZE, N_CLASSES, bias=use_bias)
+        # use_bias = not use_label_distribution_deviation
+        self.ff = nn.Linear(VOCAB_SIZE, N_CLASSES)
         self.use_label_distribution_deviation = use_label_distribution_deviation
 
     def forward(self, batch):

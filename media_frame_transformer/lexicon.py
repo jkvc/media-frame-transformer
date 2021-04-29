@@ -73,6 +73,9 @@ def build_bow_xys(
                 X[i, word2idx[w]] += 1
         y[i] = primary_frame_code_to_cidx(sample.code)
 
+    # X = np.append(X, np.zeros((15, len(word2idx))), axis=0)
+    # y = np.append(y, np.arange(15))
+
     return X, y
 
 
