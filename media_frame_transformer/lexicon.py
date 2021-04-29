@@ -1,31 +1,30 @@
 import re
+import sys
 from collections import Counter
 from os import makedirs
 from os.path import join
 from typing import Dict, List, Tuple
 
 import numpy as np
+import pandas as pd
 import torch
-from config import VOCAB_SIZE
+from config import ISSUES, LEX_DIR, N_CLASSES, VOCAB_SIZE
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
-from nltk.tokenize import word_tokenize
-from torch.optim import SGD, AdamW
-from tqdm import tqdm, trange
+from sklearn.linear_model import LogisticRegression
+from tqdm import tqdm
 
-import media_frame_transformer.models_lexicon  # noqa
 from media_frame_transformer.dataset import (
     PRIMARY_FRAME_NAMES,
     get_primary_frame_labelprops_full_split,
     primary_frame_code_to_cidx,
 )
-from media_frame_transformer.learning import calc_f1
-from media_frame_transformer.models import get_model, get_model_names
+from media_frame_transformer.learning import _print_metrics
+from media_frame_transformer.logreg import MultinomialLogisticRegressionWithLabelprops
 from media_frame_transformer.text_samples import TextSample
 from media_frame_transformer.utils import DEVICE, save_json, write_str_list_as_txt
 
 STOPWORDS = stopwords.words("english")
-DEFAULT_WEIGHT_DECAY = 1
 
 
 def get_tokens(cleaned_text: str) -> List[str]:
@@ -46,13 +45,13 @@ def lemmatize(samples: List[TextSample]) -> List[List[str]]:
 
 
 def build_lemma_vocab(
-    samples: List[TextSample],
+    samples: List[TextSample], vocab_size: int = VOCAB_SIZE
 ) -> Tuple[List[str], Dict[str, int], List[List[str]]]:
     all_lemmas = lemmatize(samples)
     word2count = Counter()
     for lemmas in all_lemmas:
         word2count.update(lemmas)
-    vocab = [w for w, c in word2count.most_common(VOCAB_SIZE)]
+    vocab = [w for w, c in word2count.most_common(vocab_size)]
 
     return vocab, all_lemmas
 
@@ -61,10 +60,14 @@ def build_bow_xys(
     samples: List[TextSample],
     all_lemmas: List[List[str]],
     vocab: List[str],
+    append_artificial_samples: bool = False,
 ) -> Tuple[np.array, np.array]:
+    issue2labelprops = get_primary_frame_labelprops_full_split("train")
+
     word2idx = {w: i for i, w in enumerate(vocab)}
     X = np.zeros((len(samples), len(word2idx)))
     y = np.zeros((len(samples),))
+    labelprops = np.array([issue2labelprops[s.issue] for s in samples])
 
     for i, sample in enumerate(tqdm(samples)):
         lemmas = all_lemmas[i]
@@ -73,107 +76,74 @@ def build_bow_xys(
                 X[i, word2idx[w]] += 1
         y[i] = primary_frame_code_to_cidx(sample.code)
 
-    # X = np.append(X, np.zeros((15, len(word2idx))), axis=0)
-    # y = np.append(y, np.arange(15))
+    if append_artificial_samples:
+        X = np.append(X, np.zeros((N_CLASSES, len(word2idx))), axis=0)
+        y = np.append(y, np.arange(N_CLASSES))
+        labelprops = np.append(
+            labelprops, np.ones((N_CLASSES, N_CLASSES)) * (1 / N_CLASSES), axis=0
+        )
 
-    return X, y
+    return X, y, labelprops
 
 
-def train_lexicon_model(
-    arch,
-    train_samples,
-    weight_decay,
-    num_early_stop_non_improve_epoch=15,
-):
-    vocab, all_lemmas = build_lemma_vocab(train_samples)
-    X, y = build_bow_xys(train_samples, all_lemmas, vocab)
+LEXICON_ARCHS = ["multinomial", "multinomial+dev"]
 
-    issue2labelprops = get_primary_frame_labelprops_full_split("train")
-    labelprops = np.array([issue2labelprops[s.issue] for s in train_samples])
 
-    model = get_model(arch).to(DEVICE)
-    model.train()
+def run_lexicon_experiment(arch, C, train_samples, valid_samples, logdir):
+    assert arch in LEXICON_ARCHS
+    vocab, train_lemmas = build_lemma_vocab(train_samples)
 
-    optimizer = AdamW(model.parameters(), lr=1e-3, weight_decay=weight_decay)
-    # optimizer = SGD(model.parameters(), lr=1e-3, weight_decay=weight_decay)
-
-    best_loss = float("inf")
-    num_non_improve_epoch = 0
-
-    for e in trange(5000):
-        chosen = np.random.choice(len(y), size=len(y) // 2, replace=False)
-
-        train_batch = {
-            "x": torch.Tensor(X[chosen]),
-            "y": torch.LongTensor(y[chosen]),
-            "label_distribution": torch.FloatTensor(labelprops[chosen]),
-        }
-
-        optimizer.zero_grad()
-        outputs = model(train_batch)
-        loss = outputs["loss"]
-        loss.backward()
-        optimizer.step()
-
-        loss = loss.item()
-        if loss < best_loss:
-            best_loss = loss
-            num_non_improve_epoch = 0
-        else:
-            num_non_improve_epoch += 1
-            if num_non_improve_epoch >= num_early_stop_non_improve_epoch:
-                break
-
-    train_outputs = model(train_batch)
-    f1, precision, recall = calc_f1(
-        train_outputs["logits"].detach().cpu().numpy(),
-        train_outputs["labels"].detach().cpu().numpy(),
+    trainx, trainy, trainlabelprops = build_bow_xys(
+        samples=train_samples,
+        all_lemmas=train_lemmas,
+        vocab=vocab,
+        append_artificial_samples=True,
     )
-    metrics = {"f1": f1, "precision": precision, "recall": recall}
-
-    return vocab, model, metrics
-
-
-def eval_lexicon_model(model, valid_samples, vocab):
-    X, y = build_bow_xys(valid_samples, lemmatize(valid_samples), vocab)
-    issue2labelprops = get_primary_frame_labelprops_full_split("train")
-    labelprops = np.array([issue2labelprops[s.issue] for s in valid_samples])
-    valid_batch = {
-        "x": torch.Tensor(X),
-        "y": torch.LongTensor(y),
-        "label_distribution": torch.FloatTensor(labelprops),
-    }
-
-    with torch.no_grad():
-        outputs = model(valid_batch)
-
-    f1, precision, recall = calc_f1(
-        outputs["logits"].detach().cpu().numpy(),
-        outputs["labels"].detach().cpu().numpy(),
+    validx, validy, validlabelprops = build_bow_xys(
+        samples=valid_samples,
+        all_lemmas=lemmatize(valid_samples),
+        vocab=vocab,
     )
 
-    # single label acc, regardless whether classifier is fitting ovr or multinomial
-    preds = np.argmax(outputs["logits"].detach().cpu().numpy(), axis=-1)
-    acc = (preds == y).sum() / len(y)
+    # fit and eval
 
-    metrics = {"f1": f1, "precision": precision, "recall": recall, "acc": acc}
-
-    return metrics
-
-
-def run_lexicon_experiment(
-    arch, train_samples, logdir, weight_decay=DEFAULT_WEIGHT_DECAY
-):
-    assert arch in get_model_names()
-
-    vocab, model, metrics = train_lexicon_model(arch, train_samples, weight_decay)
+    if arch == "multinomial":
+        logreg = LogisticRegression(
+            penalty="l2",
+            C=C,
+            fit_intercept=True,
+            solver="lbfgs",
+            max_iter=5000,
+            multi_class="multinomial",
+        )
+        logreg.fit(trainx, trainy)
+        train_acc = logreg.score(trainx, trainy)
+        valid_acc = logreg.score(validx, validy)
+    elif arch == "multinomial+dev":
+        logreg = MultinomialLogisticRegressionWithLabelprops(
+            penalty="l2",
+            C=C,
+            fit_intercept=False,
+            solver="lbfgs",
+            max_iter=5000,
+            multi_class="multinomial",
+        )
+        logreg.fit(trainx, trainy, trainlabelprops)
+        train_acc = logreg.score(trainx, trainy, trainlabelprops)
+        valid_acc = logreg.score(validx, validy, validlabelprops)
 
     makedirs(logdir, exist_ok=True)
-    write_str_list_as_txt(vocab, join(logdir, "vocab.txt"))
-    torch.save(model, join(logdir, "model.pth"))
+    metrics = {"train_acc": train_acc, "valid_acc": valid_acc}
+    _print_metrics(metrics)
     save_json(metrics, join(logdir, "leaf_metrics.json"))
 
-    df = model.get_weighted_lexicon(vocab, PRIMARY_FRAME_NAMES)
+    w = logreg.coef_
+    df = pd.DataFrame()
+    df["word"] = vocab
+    for c in range(N_CLASSES):
+        df[PRIMARY_FRAME_NAMES[c]] = w[c]
     df.to_csv(join(logdir, "lexicon.csv"), index=False)
 
-    return vocab, model, metrics
+    write_str_list_as_txt(vocab, join(logdir, "vocab.txt"))
+
+    return vocab, metrics

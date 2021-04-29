@@ -1,4 +1,5 @@
 # models for lexicon induction
+# deprecated, because torch optimizer does not handle shallow model well
 
 from typing import List
 

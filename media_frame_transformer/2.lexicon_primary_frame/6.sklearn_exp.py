@@ -10,108 +10,20 @@ from media_frame_transformer.dataset import (
     get_primary_frame_labelprops_full_split,
 )
 from media_frame_transformer.eval import reduce_and_save_metrics
-from media_frame_transformer.lexicon import (
-    build_bow_xys,
-    build_lemma_vocab,
-    eval_lexicon_model,
-    lemmatize,
-    run_lexicon_experiment,
-)
+from media_frame_transformer.lexicon import build_bow_xys, build_lemma_vocab, lemmatize
 from media_frame_transformer.text_samples import load_all_text_samples
-from media_frame_transformer.utils import save_json
 from numpy.random import f
 from scipy import optimize
 from scipy.special._logsumexp import logsumexp
 from sklearn.linear_model import LogisticRegression
-from sklearn.linear_model._base import (
-    BaseEstimator,
-    LinearClassifierMixin,
-    SparseCoefMixin,
-)
-from sklearn.preprocessing._label import LabelBinarizer, LabelEncoder
+from sklearn.preprocessing._label import LabelBinarizer
 from sklearn.utils.extmath import safe_sparse_dot, squared_norm
 from sklearn.utils.multiclass import check_classification_targets
-
-
-def path(
-    X,
-    y,
-    log_labelprops,
-    pos_class=None,
-    Cs=10,
-    fit_intercept=True,
-    max_iter=100,
-    tol=1e-4,
-    verbose=0,
-    solver="lbfgs",
-    coef=None,
-    class_weight=None,
-    dual=False,
-    penalty="l2",
-    intercept_scaling=1.0,
-    multi_class="auto",
-    random_state=None,
-    check_input=True,
-    max_squared_sum=None,
-    sample_weight=None,
-    l1_ratio=None,
-):
-    _, n_features = X.shape
-    classes = np.unique(y)
-
-    lbin = LabelBinarizer()
-    Y_multi = lbin.fit_transform(y)
-    target = Y_multi
-    # print(target.shape)
-
-    w0 = np.zeros((classes.size, n_features), order="F", dtype=X.dtype)
-
-    def func(x, *args):
-        def loss_grad(w, X, Y, alpha, sample_weight):
-            n_classes = Y.shape[1]
-            # n_features = X.shape[1]
-            # fit_intercept = False
-            # grad = np.zeros((n_classes, n_features + bool(fit_intercept)),
-            #                 dtype=X.dtype)
-
-            w = w.reshape(n_classes, -1)
-
-            p = safe_sparse_dot(X, w.T)
-            # print(X.shape, w.shape, p.shape)
-
-            p += log_labelprops
-            p -= logsumexp(p, axis=1)[:, np.newaxis]
-            loss = -(Y * p).sum()
-            loss += 0.5 * alpha * squared_norm(w)
-            p = np.exp(p, p)
-
-            diff = p - Y
-            grad = safe_sparse_dot(diff.T, X)
-            grad += alpha * w
-            return loss, grad.ravel(), p
-
-        return loss_grad(x, *args)[0:2]
-
-    opt_res = optimize.minimize(
-        func,
-        w0,
-        method="L-BFGS-B",
-        jac=True,
-        args=(X, target, 1.0 / Cs[0], sample_weight),
-        options={"gtol": tol, "maxiter": max_iter},
-    )
-    # n_iter_i = _check_optimize_result(
-    #     solver, opt_res, max_iter,
-    #     extra_warning_msg=_LOGISTIC_SOLVER_CONVERGENCE_MSG)
-    w0, loss = opt_res.x, opt_res.fun
-
-    return np.array(w0)
 
 
 class LOGREG(LogisticRegression):
     def fit(self, X, y, log_labelprops):
         assert len(log_labelprops == len(X))
-        # log_labelprops = log_labelprops - log_labelprops.mean(axis=1, keepdims=True)
 
         _dtype = np.float64
         solver = "lbfgs"
@@ -127,34 +39,45 @@ class LOGREG(LogisticRegression):
         self.classes_ = np.unique(y)
         assert log_labelprops.shape[1] == len(self.classes_)
 
-        max_squared_sum = None
-
         n_classes = len(self.classes_)
-        classes_ = self.classes_
         C_ = self.C
-        class_ = None
+        _, n_features = X.shape
+        classes = np.unique(y)
 
-        self.coef_ = path(
-            X,
-            y,
-            # pos_class=class_,
-            log_labelprops=log_labelprops,
-            Cs=[C_],
-            # l1_ratio=self.l1_ratio,
-            fit_intercept=False,
-            tol=self.tol,
-            verbose=self.verbose,
-            solver=solver,
-            multi_class="multinomial",
-            max_iter=self.max_iter,
-            # class_weight=self.class_weight,
-            check_input=False,
-            random_state=self.random_state,
-            coef=None,
-            penalty="l2",
-            max_squared_sum=max_squared_sum,
-            sample_weight=None,
-        ).reshape(n_classes, -1)
+        lbin = LabelBinarizer()
+        Y_multi = lbin.fit_transform(y)
+        target = Y_multi
+
+        w0 = np.zeros((classes.size, n_features), order="F", dtype=X.dtype)
+
+        def multinomial_loss_grad(w, X, Y, alpha, sample_weight):
+            n_classes = Y.shape[1]
+            w = w.reshape(n_classes, -1)
+
+            p = safe_sparse_dot(X, w.T)
+            # print(X.shape, w.shape, p.shape)
+
+            p += log_labelprops
+            p -= logsumexp(p, axis=1)[:, np.newaxis]
+            loss = -(Y * p).sum()
+            loss += 0.5 * alpha * squared_norm(w)
+            p = np.exp(p, p)
+
+            diff = p - Y
+            grad = safe_sparse_dot(diff.T, X)
+            grad += alpha * w
+            return loss, grad.ravel()
+
+        opt_res = optimize.minimize(
+            multinomial_loss_grad,
+            w0,
+            method="L-BFGS-B",
+            jac=True,
+            args=(X, target, 1.0 / [C_], self.sample_weight),
+            options={"gtol": self.tol, "maxiter": self.max_iter},
+        )
+        w0 = opt_res.x
+        self.coef_ = w0.reshape(n_classes, -1)
         self.intercept_ = np.zeros(n_classes)
 
 
