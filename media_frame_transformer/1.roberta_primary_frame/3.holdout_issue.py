@@ -2,6 +2,7 @@ import sys
 from os.path import join
 
 from config import ARCH, BATCHSIZE, FOLDS_TO_RUN, ISSUES, KFOLD, MODELS_DIR
+from media_frame_transformer import models_roberta  # noqa
 from media_frame_transformer.dataset import (
     PrimaryFrameDataset,
     get_kfold_primary_frames_datasets,
@@ -11,7 +12,8 @@ from media_frame_transformer.experiments import run_experiments
 from media_frame_transformer.text_samples import load_all_text_samples
 
 _arch = sys.argv[1]
-EXPERIMENT_NAME = f"13.{_arch}"
+EXPERIMENT_NAME = f"3.{_arch}"
+_NUM_EARLY_STOP_NON_IMPROVE_EPOCH = 3
 
 
 def _train():
@@ -36,7 +38,12 @@ def _train():
                 "valid": kfold_datasets[ki]["valid"],
                 "additional_valid_datasets": {"holdout_issue": holdout_issue_dataset},
             }
-    run_experiments(_arch, path2datasets, batchsize=BATCHSIZE)
+    run_experiments(
+        _arch,
+        path2datasets,
+        batchsize=BATCHSIZE,
+        num_early_stop_non_improve_epoch=_NUM_EARLY_STOP_NON_IMPROVE_EPOCH,
+    )
 
 
 if __name__ == "__main__":

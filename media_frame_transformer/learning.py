@@ -106,6 +106,7 @@ def train(
                 for k, v in valid_metrics.items():
                     metrics[f"valid_{k}"] = v
                 num_non_improve_epoch = 0
+                metrics["best_epoch"] = e
                 if save_model:
                     print(
                         f'++ save model checkpoint to {join(logdir, "checkpoint.pth")}'
