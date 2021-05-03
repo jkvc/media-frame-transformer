@@ -100,11 +100,6 @@ def run_lexicon_experiment(arch, C, train_samples, valid_samples, logdir):
         all_tokens=tokenize_all(valid_samples),
         vocab=vocab,
     )
-    train_onehot = np.eye(N_CLASSES)[trainy.astype(int)]
-    unbiased_labelprops = train_onehot.sum(axis=0)
-    unbiased_labelprops = unbiased_labelprops / unbiased_labelprops.sum()
-    unbiased_labelprops = np.tile(unbiased_labelprops, (len(validy), 1))
-
     # fit and eval
 
     if arch == "multinomial":
@@ -131,11 +126,13 @@ def run_lexicon_experiment(arch, C, train_samples, valid_samples, logdir):
             multi_class="multinomial",
         )
         logreg.fit(trainx, trainy, trainlabelprops)
-
+        unbiased_validlabelprops = np.ones((len(validy), N_CLASSES)) / N_CLASSES
         metrics = {
             "train_acc": logreg.score(trainx, trainy, trainlabelprops),
-            "valid_acc_unbiased": logreg.score(validx, validy, unbiased_labelprops),
-            "valid_acc_biased": logreg.score(validx, validy, validlabelprops),
+            "valid_acc": logreg.score(validx, validy, validlabelprops),
+            "valid_acc_unbiased": logreg.score(
+                validx, validy, unbiased_validlabelprops
+            ),
         }
 
     makedirs(logdir, exist_ok=True)

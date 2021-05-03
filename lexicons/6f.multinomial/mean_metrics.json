@@ -1,0 +1,42 @@
+{
+    "climate": {
+        "mean": {
+            "train_acc": 0.8955380577427822,
+            "valid_acc": 0.3629022586448131
+        }
+    },
+    "deathpenalty": {
+        "mean": {
+            "train_acc": 0.8665611814345991,
+            "valid_acc": 0.40562457556026044
+        }
+    },
+    "guncontrol": {
+        "mean": {
+            "train_acc": 0.8388347233642665,
+            "valid_acc": 0.43289680976762507
+        }
+    },
+    "immigration": {
+        "mean": {
+            "train_acc": 0.8633741888968998,
+            "valid_acc": 0.4656957511706835
+        }
+    },
+    "samesex": {
+        "mean": {
+            "train_acc": 0.8879375472173257,
+            "valid_acc": 0.39575118693168104
+        }
+    },
+    "tobacco": {
+        "mean": {
+            "train_acc": 0.8891610532761788,
+            "valid_acc": 0.4444227082436715
+        }
+    },
+    "mean": {
+        "train_acc": 0.8735677919886752,
+        "valid_acc": 0.41788221505312245
+    }
+}

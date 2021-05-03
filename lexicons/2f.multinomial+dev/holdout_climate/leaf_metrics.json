@@ -1,5 +1,5 @@
 {
-    "train_acc": 0.7867359168997203,
-    "valid_acc_unbiased": 0.3981554677206851,
-    "valid_acc_biased": 0.5251646903820817
+    "train_acc": 0.7381542149420696,
+    "valid_acc": 0.5159420289855072,
+    "valid_acc_unbiased": 0.416600790513834
 }

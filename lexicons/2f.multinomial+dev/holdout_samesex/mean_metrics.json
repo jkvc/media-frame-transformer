@@ -1,7 +1,7 @@
 {
     "mean": {
-        "train_acc": 0.8249225943946279,
-        "valid_acc_unbiased": 0.6170374115267947,
-        "valid_acc_biased": 0.621840242669363
+        "train_acc": 0.7753427962523624,
+        "valid_acc": 0.5942871587462083,
+        "valid_acc_unbiased": 0.6054095045500506
     }
 }
