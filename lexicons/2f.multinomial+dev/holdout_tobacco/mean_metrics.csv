@@ -1,0 +1,2 @@
+,train_acc,valid_acc_unbiased,valid_acc_biased
+mean,0.8373738953624775,0.5499846201168871,0.5493694247923716

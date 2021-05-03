@@ -1,0 +1,49 @@
+{
+    "holdout_climate": {
+        "mean": {
+            "train_acc": 0.7867359168997203,
+            "valid_acc_unbiased": 0.3981554677206851,
+            "valid_acc_biased": 0.5251646903820817
+        }
+    },
+    "holdout_deathpenalty": {
+        "mean": {
+            "train_acc": 0.8141967422548706,
+            "valid_acc_unbiased": 0.48610007942811756,
+            "valid_acc_biased": 0.46677257082340484
+        }
+    },
+    "holdout_guncontrol": {
+        "mean": {
+            "train_acc": 0.8727308505928076,
+            "valid_acc_unbiased": 0.5501294422216992,
+            "valid_acc_biased": 0.5644857613556131
+        }
+    },
+    "holdout_immigration": {
+        "mean": {
+            "train_acc": 0.8202816417654131,
+            "valid_acc_unbiased": 0.4977408277607085,
+            "valid_acc_biased": 0.495210554852702
+        }
+    },
+    "holdout_samesex": {
+        "mean": {
+            "train_acc": 0.8249225943946279,
+            "valid_acc_unbiased": 0.6170374115267947,
+            "valid_acc_biased": 0.621840242669363
+        }
+    },
+    "holdout_tobacco": {
+        "mean": {
+            "train_acc": 0.8373738953624775,
+            "valid_acc_unbiased": 0.5499846201168871,
+            "valid_acc_biased": 0.5493694247923716
+        }
+    },
+    "mean": {
+        "train_acc": 0.8260402735449862,
+        "valid_acc_unbiased": 0.5165246414624821,
+        "valid_acc_biased": 0.5371405408125894
+    }
+}

@@ -35,30 +35,26 @@ def get_tokens(cleaned_text: str) -> List[str]:
     return tokens
 
 
-def lemmatize(samples: List[TextSample]) -> List[List[str]]:
-    lemmeatizer = WordNetLemmatizer()
-    all_lemmas = [
-        [lemmeatizer.lemmatize(w) for w in get_tokens(sample.text)]
-        for sample in tqdm(samples)
-    ]
-    return all_lemmas
+def tokenize_all(samples: List[TextSample]) -> List[List[str]]:
+    all_tokens = [get_tokens(sample.text) for sample in tqdm(samples)]
+    return all_tokens
 
 
 def build_lemma_vocab(
     samples: List[TextSample], vocab_size: int = VOCAB_SIZE
 ) -> Tuple[List[str], Dict[str, int], List[List[str]]]:
-    all_lemmas = lemmatize(samples)
+    all_tokens = tokenize_all(samples)
     word2count = Counter()
-    for lemmas in all_lemmas:
+    for lemmas in all_tokens:
         word2count.update(lemmas)
     vocab = [w for w, c in word2count.most_common(vocab_size)]
 
-    return vocab, all_lemmas
+    return vocab, all_tokens
 
 
 def build_bow_xys(
     samples: List[TextSample],
-    all_lemmas: List[List[str]],
+    all_tokens: List[List[str]],
     vocab: List[str],
     append_artificial_samples: bool = False,
 ) -> Tuple[np.array, np.array]:
@@ -70,10 +66,10 @@ def build_bow_xys(
     labelprops = np.array([issue2labelprops[s.issue] for s in samples])
 
     for i, sample in enumerate(tqdm(samples)):
-        lemmas = all_lemmas[i]
+        lemmas = all_tokens[i]
         for w in lemmas:
             if w in word2idx:
-                X[i, word2idx[w]] += 1
+                X[i, word2idx[w]] = 1
         y[i] = primary_frame_code_to_cidx(sample.code)
 
     if append_artificial_samples:
@@ -95,15 +91,19 @@ def run_lexicon_experiment(arch, C, train_samples, valid_samples, logdir):
 
     trainx, trainy, trainlabelprops = build_bow_xys(
         samples=train_samples,
-        all_lemmas=train_lemmas,
+        all_tokens=train_lemmas,
         vocab=vocab,
         append_artificial_samples=True,
     )
     validx, validy, validlabelprops = build_bow_xys(
         samples=valid_samples,
-        all_lemmas=lemmatize(valid_samples),
+        all_tokens=tokenize_all(valid_samples),
         vocab=vocab,
     )
+    train_onehot = np.eye(N_CLASSES)[trainy.astype(int)]
+    unbiased_labelprops = train_onehot.sum(axis=0)
+    unbiased_labelprops = unbiased_labelprops / unbiased_labelprops.sum()
+    unbiased_labelprops = np.tile(unbiased_labelprops, (len(validy), 1))
 
     # fit and eval
 
@@ -117,8 +117,10 @@ def run_lexicon_experiment(arch, C, train_samples, valid_samples, logdir):
             multi_class="multinomial",
         )
         logreg.fit(trainx, trainy)
-        train_acc = logreg.score(trainx, trainy)
-        valid_acc = logreg.score(validx, validy)
+        metrics = {
+            "train_acc": logreg.score(trainx, trainy),
+            "valid_acc": logreg.score(validx, validy),
+        }
     elif arch == "multinomial+dev":
         logreg = MultinomialLogisticRegressionWithLabelprops(
             penalty="l2",
@@ -129,11 +131,14 @@ def run_lexicon_experiment(arch, C, train_samples, valid_samples, logdir):
             multi_class="multinomial",
         )
         logreg.fit(trainx, trainy, trainlabelprops)
-        train_acc = logreg.score(trainx, trainy, trainlabelprops)
-        valid_acc = logreg.score(validx, validy, validlabelprops)
+
+        metrics = {
+            "train_acc": logreg.score(trainx, trainy, trainlabelprops),
+            "valid_acc_unbiased": logreg.score(validx, validy, unbiased_labelprops),
+            "valid_acc_biased": logreg.score(validx, validy, validlabelprops),
+        }
 
     makedirs(logdir, exist_ok=True)
-    metrics = {"train_acc": train_acc, "valid_acc": valid_acc}
     _print_metrics(metrics)
     save_json(metrics, join(logdir, "leaf_metrics.json"))
 
