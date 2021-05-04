@@ -1,6 +1,6 @@
 import re
 import sys
-from collections import Counter
+from collections import Counter, defaultdict
 from os import makedirs
 from os.path import join
 from typing import Dict, List, Tuple
@@ -102,13 +102,30 @@ def run_lexicon_experiment(arch, C, train_samples, valid_samples, logdir):
     )
     # fit and eval
 
+    word2idx = {w: i for i, w in enumerate(vocab)}
+    issue2tokfreq = defaultdict(lambda: np.zeros((VOCAB_SIZE,)))
+    issue2samplecount = defaultdict(int)
+    for sample, toks in zip(train_samples, train_lemmas):
+        issue2samplecount[sample.issue] += 1
+        for tok in toks:
+            if tok in word2idx:
+                issue2tokfreq[sample.issue][word2idx[tok]] += 1
+    all_tokprobs = np.array(
+        [freqs / issue2samplecount[issue] for issue, freqs in issue2tokfreq.items()]
+    )
+    means = all_tokprobs.mean(axis=0)
+    hmeans = all_tokprobs.shape[0] / np.sum(1 / (all_tokprobs + 1e-8), axis=0)
+    rs = (means - hmeans) / means
+    # for w, r in zip(vocab, rs):
+    #     print(w, r)
+
     if arch == "multinomial":
         logreg = LogisticRegression(
             penalty="l2",
             C=C,
             fit_intercept=True,
             solver="lbfgs",
-            max_iter=5000,
+            max_iter=2000,
             multi_class="multinomial",
         )
         logreg.fit(trainx, trainy)
@@ -122,10 +139,10 @@ def run_lexicon_experiment(arch, C, train_samples, valid_samples, logdir):
             C=C,
             fit_intercept=False,
             solver="lbfgs",
-            max_iter=5000,
+            max_iter=2000,
             multi_class="multinomial",
         )
-        logreg.fit(trainx, trainy, trainlabelprops)
+        logreg.fit(trainx, trainy, trainlabelprops, rs)
         unbiased_validlabelprops = np.ones((len(validy), N_CLASSES)) / N_CLASSES
         metrics = {
             "train_acc": logreg.score(trainx, trainy, trainlabelprops),

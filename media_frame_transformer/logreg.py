@@ -9,7 +9,7 @@ from sklearn.utils.multiclass import check_classification_targets
 
 
 class MultinomialLogisticRegressionWithLabelprops(LogisticRegression):
-    def fit(self, X, y, labelprops):
+    def fit(self, X, y, labelprops, rs):
         assert len(labelprops == len(X))
         log_labelprops = np.log(labelprops)
 
@@ -53,7 +53,8 @@ class MultinomialLogisticRegressionWithLabelprops(LogisticRegression):
 
             diff = p - Y
             grad = safe_sparse_dot(diff.T, X)
-            grad += alpha * w
+            grad += alpha / 2 * w
+            grad += alpha / 2 * np.expand_dims(rs, axis=0) * w  # FIXME
             return loss, grad.ravel()
 
         opt_res = optimize.minimize(
