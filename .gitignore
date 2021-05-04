@@ -2,6 +2,7 @@ config.py
 
 data/
 models/
+lexicons/
 models*/
 .vscode
 __pycache__
