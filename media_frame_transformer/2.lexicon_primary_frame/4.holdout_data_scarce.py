@@ -1,5 +1,6 @@
 import sys
 from os.path import join
+from random import Random
 
 from config import ISSUES, LEX_DIR
 from media_frame_transformer.eval import reduce_and_save_metrics
@@ -13,18 +14,25 @@ _arch = sys.argv[1]
 # WEIGHT_DECAYS = [2, 3, 4, 5]
 WEIGHT_DECAYS = [1]
 
+NUM_TRAIN_SAMPLE = 500
+
+RNG = Random()
+RNG.seed(0xDEADBEEF)
+
 if __name__ == "__main__":
     for weight_decay in WEIGHT_DECAYS:
         for holdout_issue in ISSUES:
             print(">> holdout", holdout_issue)
             logdir = join(
-                LEX_DIR, f"3.{_arch}", str(weight_decay), f"holdout_{holdout_issue}"
+                LEX_DIR, f"4.{_arch}", str(weight_decay), f"holdout_{holdout_issue}"
             )
 
             train_issues = [i for i in ISSUES if i != holdout_issue]
             train_samples = load_all_text_samples(
                 train_issues, "train", "primary_frame"
             )
+            RNG.shuffle(train_samples)
+            train_samples = train_samples[:NUM_TRAIN_SAMPLE]
 
             vocab, model, train_metrics = run_lexicon_experiment(
                 _arch,
@@ -49,4 +57,4 @@ if __name__ == "__main__":
                 join(logdir, "leaf_metrics.json"),
             )
 
-    reduce_and_save_metrics(join(LEX_DIR, f"3.{_arch}"))
+    reduce_and_save_metrics(join(LEX_DIR, f"4.{_arch}"))

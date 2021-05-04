@@ -1,5 +1,5 @@
 import re
-from collections import Counter
+from collections import Counter, defaultdict
 from os import makedirs
 from os.path import join
 from typing import Dict, List, Tuple
@@ -10,7 +10,7 @@ from config import VOCAB_SIZE
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 from nltk.tokenize import word_tokenize
-from torch.optim import SGD, AdamW
+from torch.optim import ASGD, SGD, Adam, AdamW
 from tqdm import tqdm, trange
 
 import media_frame_transformer.models_lexicon  # noqa
@@ -37,11 +37,8 @@ def get_tokens(cleaned_text: str) -> List[str]:
 
 
 def lemmatize(samples: List[TextSample]) -> List[List[str]]:
-    lemmeatizer = WordNetLemmatizer()
-    all_lemmas = [
-        [lemmeatizer.lemmatize(w) for w in get_tokens(sample.text)]
-        for sample in tqdm(samples)
-    ]
+    # lemmeatizer = WordNetLemmatizer()
+    all_lemmas = [[w for w in get_tokens(sample.text)] for sample in tqdm(samples)]
     return all_lemmas
 
 
@@ -70,7 +67,7 @@ def build_bow_xys(
         lemmas = all_lemmas[i]
         for w in lemmas:
             if w in word2idx:
-                X[i, word2idx[w]] += 1
+                X[i, word2idx[w]] = 1
         y[i] = primary_frame_code_to_cidx(sample.code)
 
     return X, y
@@ -91,35 +88,62 @@ def train_lexicon_model(
     model = get_model(arch).to(DEVICE)
     model.train()
 
-    optimizer = AdamW(model.parameters(), lr=1e-3, weight_decay=weight_decay)
-    # optimizer = SGD(model.parameters(), lr=1e-3, weight_decay=weight_decay)
+    # optimizer = Adam(model.parameters(), lr=1e-2, weight_decay=0)
+    # optimizer = AdamW(model.parameters(), lr=1e-2, weight_decay=0.00005)
+    # optimizer = ASGD(model.parameters(), lr=1e-2, weight_decay=0)
+    optimizer = SGD(model.parameters(), lr=1e-1, weight_decay=0)
 
     best_loss = float("inf")
     num_non_improve_epoch = 0
 
-    for e in trange(5000):
-        chosen = np.random.choice(len(y), size=len(y) // 2, replace=False)
+    X = torch.Tensor(X).to(DEVICE)
+    y = torch.LongTensor(y).to(DEVICE)
+    labelprops = torch.FloatTensor(labelprops).to(DEVICE)
 
+    issues = set(sample.issue for sample in train_samples)
+
+    for issue in issues:
+        idxs = [i for i, sample in enumerate(train_samples) if sample.issue == issue]
+        X[idxs] -= X[idxs].mean(dim=0)
+
+    issue2idx = {issue: i for i, issue in enumerate(issues)}
+    issue_idx = torch.LongTensor([issue2idx[s.issue] for s in train_samples])
+
+    tol = 0.00001
+
+    for e in trange(5000):
         train_batch = {
-            "x": torch.Tensor(X[chosen]),
-            "y": torch.LongTensor(y[chosen]),
-            "label_distribution": torch.FloatTensor(labelprops[chosen]),
+            "x": X,
+            "y": y,
+            "label_distribution": labelprops,
+            "issue_idx": issue_idx,
         }
 
         optimizer.zero_grad()
         outputs = model(train_batch)
+
         loss = outputs["loss"]
+        # loss = loss
+
+        # loss = loss + torch.abs(model.ff.weight).sum() * 1e-5
+        loss = loss + torch.abs(model.tout.weight @ model.tin.weight).sum() * 1e-4
+        # loss = loss + torch.abs((model.ff.weight < 0) * model.ff.weight).sum()
+        # print(loss.item())
+
         loss.backward()
         optimizer.step()
 
         loss = loss.item()
-        if loss < best_loss:
-            best_loss = loss
-            num_non_improve_epoch = 0
-        else:
-            num_non_improve_epoch += 1
-            if num_non_improve_epoch >= num_early_stop_non_improve_epoch:
-                break
+        if abs(best_loss - loss) < tol:
+            break
+        best_loss = loss
+        # if loss < best_loss:
+        #     best_loss = loss
+        #     num_non_improve_epoch = 0
+        # else:
+        #     num_non_improve_epoch += 1
+        #     if num_non_improve_epoch >= num_early_stop_non_improve_epoch:
+        #         break
 
     train_outputs = model(train_batch)
     f1, precision, recall = calc_f1(
@@ -135,12 +159,16 @@ def eval_lexicon_model(model, valid_samples, vocab):
     X, y = build_bow_xys(valid_samples, lemmatize(valid_samples), vocab)
     issue2labelprops = get_primary_frame_labelprops_full_split("train")
     labelprops = np.array([issue2labelprops[s.issue] for s in valid_samples])
+
+    X = torch.Tensor(X)
+    X = X - X.mean(dim=0)
     valid_batch = {
-        "x": torch.Tensor(X),
+        "x": X,
         "y": torch.LongTensor(y),
         "label_distribution": torch.FloatTensor(labelprops),
     }
 
+    model.eval()
     with torch.no_grad():
         outputs = model(valid_batch)
 
