@@ -67,11 +67,12 @@ def build_bow_full_batch(
         y[i] = sample.frame_idx
 
     # normalize word freq within each issue
-    for issue in ISSUES:
-        idxs = [i for i, sample in enumerate(samples) if sample.issue == issue]
-        if len(idxs) == 0:
-            continue
-        X[idxs] -= X[idxs].mean(axis=0)
+    if use_source_individual_norm:
+        for issue in ISSUES:
+            idxs = [i for i, sample in enumerate(samples) if sample.issue == issue]
+            if len(idxs) == 0:
+                continue
+            X[idxs] -= X[idxs].mean(axis=0)
 
     issue2labelprops = get_primary_frame_labelprops_full_split("train")
     labelprops = torch.FloatTensor([issue2labelprops[s.issue] for s in samples])
