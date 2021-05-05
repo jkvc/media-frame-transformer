@@ -9,8 +9,8 @@ from media_frame_transformer.utils import load_json, save_json
 RNG = Random()
 RNG.seed(RANDOM_SEED)
 
-SAVEDIR = join(DATA_DIR, f"{KFOLD}fold")
 FRAMING_DATA_DIR = join(DATA_DIR, "framing_labeled")
+SAVEDIR = join(FRAMING_DATA_DIR, f"{KFOLD}fold")
 
 if __name__ == "__main__":
     makedirs(SAVEDIR, exist_ok=True)

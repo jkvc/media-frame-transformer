@@ -4,10 +4,13 @@ from collections import Counter
 from os.path import join
 
 import numpy as np
-from config import DATA_DIR, FRAMING_DATA_DIR, ISSUES
+from config import DATA_DIR, ISSUES
 from media_frame_transformer.dataset import frame_code_to_idx
 from media_frame_transformer.utils import load_json, mkdir_overwrite, save_json
 from tqdm import tqdm
+
+FRAMING_DATA_DIR = join(DATA_DIR, "framing_labeled")
+SAVE_DIR = join(FRAMING_DATA_DIR, "subframes")
 
 
 def get_agreed_subframes(annotator2spans, textlen):
