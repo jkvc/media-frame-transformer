@@ -8,12 +8,11 @@ import torch
 from numpy.lib.function_base import iterable
 from sklearn.metrics import f1_score, precision_score, recall_score
 from torch.nn import functional as F
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Dataset
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
-from transformers import AdamW, AutoModelForSequenceClassification
+from transformers import AdamW
 
-from media_frame_transformer.dataset import PrimaryFrameDataset
 from media_frame_transformer.utils import DEVICE, save_json
 
 N_DATALOADER_WORKER = 6
@@ -28,7 +27,7 @@ def train(
     train_dataset,
     valid_dataset,
     logdir,
-    additional_valid_datasets: Dict[str, PrimaryFrameDataset] = None,
+    additional_valid_datasets: Dict[str, Dataset] = None,
     max_epochs=MAX_EPOCH,
     num_early_stop_non_improve_epoch=NUM_EARLY_STOP_NON_IMPROVE_EPOCH,
     batchsize=TRAIN_BATCHSIZE,
@@ -188,7 +187,7 @@ def valid_epoch(model, valid_loader, writer=None, epoch_idx=None, valid_set_name
         "recall": recall,
         "f1": f1,
     }
-    _print_metrics(metrics)
+    print_metrics(metrics)
     return metrics
 
 
@@ -232,11 +231,11 @@ def train_epoch(model, optimizer, train_loader, writer=None, epoch_idx=None):
         "recall": recall,
         "f1": f1,
     }
-    _print_metrics(metrics)
+    print_metrics(metrics)
     return metrics
 
 
-def _print_metrics(metrics):
+def print_metrics(metrics):
     for k, v in metrics.items():
         print("--", k.rjust(10), ":", v)
 

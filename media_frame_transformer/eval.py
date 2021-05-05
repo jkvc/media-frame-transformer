@@ -14,29 +14,27 @@ from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 from transformers import AdamW, AutoModelForSequenceClassification
 
-from media_frame_transformer.dataset import get_kfold_primary_frames_datasets
 from media_frame_transformer.learning import valid_epoch
 from media_frame_transformer.utils import DEVICE, load_json, save_json
 
+# def do_valid_model(pretrained_model_dir):
+#     valid_config = load_json(join(pretrained_model_dir, "valid_config.json"))
 
-def do_valid_model(pretrained_model_dir):
-    valid_config = load_json(join(pretrained_model_dir, "valid_config.json"))
-
-    model = AutoModelForSequenceClassification.from_pretrained(pretrained_model_dir).to(
-        DEVICE
-    )
-    kfold_datasets = get_kfold_primary_frames_datasets(
-        issues=valid_config["issues"], k=valid_config["kfold"]
-    )
-    valid_dataset = kfold_datasets[valid_config["ki"]]["valid"]
-    valid_loader = DataLoader(valid_dataset, batch_size=500, shuffle=True)
-    valid_acc, valid_loss = valid_epoch(model, valid_loader)
-    return {
-        "mean": {
-            "valid_acc": valid_acc,
-            "valid_loss": valid_loss,
-        },
-    }
+#     model = AutoModelForSequenceClassification.from_pretrained(pretrained_model_dir).to(
+#         DEVICE
+#     )
+#     kfold_datasets = get_kfold_primary_frames_datasets(
+#         issues=valid_config["issues"], k=valid_config["kfold"]
+#     )
+#     valid_dataset = kfold_datasets[valid_config["ki"]]["valid"]
+#     valid_loader = DataLoader(valid_dataset, batch_size=500, shuffle=True)
+#     valid_acc, valid_loss = valid_epoch(model, valid_loader)
+#     return {
+#         "mean": {
+#             "valid_acc": valid_acc,
+#             "valid_loss": valid_loss,
+#         },
+#     }
 
 
 def eval_pretrained_model(pretrained_model_dir):
