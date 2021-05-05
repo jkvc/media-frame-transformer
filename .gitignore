@@ -1,9 +1,6 @@
 config.py
 
 data/
-lexicons/
-models/
-lexicons/
-models*/
+otuput/
 .vscode
 __pycache__
