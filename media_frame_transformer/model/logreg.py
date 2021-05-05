@@ -88,8 +88,8 @@ class LogRegLearnedResidualization(nn.Module):
         n_classes = config["n_classes"]
         self.tff = nn.Linear(vocab_size, n_classes, bias=False)
 
-        confound_input_size = config["confound_input_size"]
-        self.cff = nn.Linear(confound_input_size, n_classes)
+        self.confound_input_size = config["confound_input_size"]
+        self.cff = nn.Linear(self.confound_input_size, n_classes)
 
         self.reg = config["reg"]
 
@@ -100,7 +100,11 @@ class LogRegLearnedResidualization(nn.Module):
         assert vocabsize == self.config["vocab_size"]
 
         if self.training:
-            issues_onehot = torch.eye(6)[batch["issue_idx"]].to(DEVICE).to(torch.float)
+            issues_onehot = (
+                torch.eye(self.confound_input_size)[batch["source_idx"]]
+                .to(DEVICE)
+                .to(torch.float)
+            )
             yhat = self.cin(issues_onehot)
             e = self.tin(x)
             logits = self.cout(yhat) + self.tout(e)
