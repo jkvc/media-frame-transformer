@@ -1,6 +1,7 @@
 config.py
 
 data/
+lexicons/
 models/
 lexicons/
 models*/
