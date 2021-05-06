@@ -59,7 +59,9 @@ def load_kfold_framing_samples(
 
     samples = load_all_framing_samples(issues, split="train", task=task)
     for issue in tqdm(issues):
-        kfold_data = load_json(join(DATA_DIR, f"{KFOLD}fold", f"{issue}.json"))
+        kfold_data = load_json(
+            join(DATA_DIR, "framing_labeled", f"{KFOLD}fold", f"{issue}.json")
+        )
         for kidx, fold in enumerate(kfold_data[task]):
             for split in ["train", "valid"]:
                 ids = set(fold[split])
