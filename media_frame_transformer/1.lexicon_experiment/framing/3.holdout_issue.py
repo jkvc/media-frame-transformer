@@ -12,10 +12,10 @@ from config import LEXICON_DIR
 _CONFIG_PATH = sys.argv[1]
 _CONFIG = load_json(_CONFIG_PATH)
 
-_EXPERIMENT_NAME = "2f.holdout_full"
+_EXPERIMENT_NAME = "3.holdout_issue"
 _CONFIG_NAME = splitext(basename(_CONFIG_PATH))[0]
 
-_SAVE_DIR = join(LEXICON_DIR, _EXPERIMENT_NAME, _CONFIG_NAME)
+_SAVE_DIR = join(LEXICON_DIR, "framing", _EXPERIMENT_NAME, _CONFIG_NAME)
 
 for holdout_issue in ISSUES:
     print(">>", holdout_issue)

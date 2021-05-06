@@ -14,7 +14,7 @@ _CONFIG = load_json(_CONFIG_PATH)
 _EXPERIMENT_NAME = "1.all_issues"
 _CONFIG_NAME = splitext(basename(_CONFIG_PATH))[0]
 
-_SAVE_DIR = join(LEXICON_DIR, _EXPERIMENT_NAME, _CONFIG_NAME)
+_SAVE_DIR = join(LEXICON_DIR, "framing", _EXPERIMENT_NAME, _CONFIG_NAME)
 
 samples = load_all_framing_samples(ISSUES, "train", "primary_frame")
 run_lexicon_experiment(

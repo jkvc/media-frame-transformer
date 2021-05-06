@@ -1,8 +1,8 @@
-from dataclasses import dataclass
 from os.path import join
 from typing import Dict, List
 
 from config import DATA_DIR, KFOLD
+from media_frame_transformer.dataset.data_sample import DataSample
 from media_frame_transformer.dataset.framing.definition import (
     ISSUE2IIDX,
     primary_frame_code_to_fidx,
@@ -13,19 +13,9 @@ from tqdm import tqdm
 TASKS = ["relevance", "primary_frame", "primary_tone"]
 
 
-@dataclass
-class FramingDataSample:
-    id: str
-    text: str
-    code: float
-    frame_idx: int
-    issue: str
-    issue_idx: int
-
-
 def load_all_framing_samples(
     issues: List[str], split: str, task: str
-) -> List[FramingDataSample]:
+) -> List[DataSample]:
     assert split in ["train", "test"]
     assert task in TASKS
 
@@ -38,13 +28,13 @@ def load_all_framing_samples(
 
         for id in ids:
             samples.append(
-                FramingDataSample(
+                DataSample(
                     id=id,
                     text=clean_text(raw_data[id]["text"]),
-                    code=raw_data[id]["primary_frame"],
-                    frame_idx=primary_frame_code_to_fidx(raw_data[id]["primary_frame"]),
-                    issue=issue,
-                    issue_idx=ISSUE2IIDX[issue],
+                    # code=raw_data[id]["primary_frame"],
+                    y_idx=primary_frame_code_to_fidx(raw_data[id]["primary_frame"]),
+                    source_name=issue,
+                    source_idx=ISSUE2IIDX[issue],
                 )
             )
     return samples
@@ -52,7 +42,7 @@ def load_all_framing_samples(
 
 def load_kfold_framing_samples(
     issues: List[str], task: str
-) -> List[Dict[str, List[FramingDataSample]]]:
+) -> List[Dict[str, List[DataSample]]]:
     assert task in TASKS
 
     kidx2split2samples = [{"train": [], "valid": []} for _ in range(KFOLD)]

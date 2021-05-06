@@ -100,24 +100,23 @@ class LogRegLearnedResidualization(nn.Module):
         assert vocabsize == self.config["vocab_size"]
 
         if self.training:
-            issues_onehot = (
+            source_onehot = (
                 torch.eye(self.confound_input_size)[batch["source_idx"]]
                 .to(DEVICE)
                 .to(torch.float)
             )
-            yhat = self.cin(issues_onehot)
-            e = self.tin(x)
-            logits = self.cout(yhat) + self.tout(e)
+            clogits = self.cff(source_onehot)
+            tlogits = self.tff(x)
+            logits = clogits + tlogits
         else:
-            e = self.tin(x)
-            logits = self.tout(e)
+            logits = self.tff(x)
 
         labels = batch["y"].to(DEVICE)
         loss, labels = calc_multiclass_loss(logits, labels, self.multiclass_strategy)
         loss = loss.mean()
 
         # l1 reg on t weights only
-        loss = loss + torch.abs(self.tff).sum() * self.reg
+        loss = loss + torch.abs(self.tff.weight).sum() * self.reg
 
         return {
             "logits": logits,

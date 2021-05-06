@@ -14,10 +14,10 @@ from config import LEXICON_DIR
 _CONFIG_PATH = sys.argv[1]
 _CONFIG = load_json(_CONFIG_PATH)
 
-_EXPERIMENT_NAME = "2.holdout_hyperparam"
+_EXPERIMENT_NAME = "2.hyperparam"
 _CONFIG_NAME = splitext(basename(_CONFIG_PATH))[0]
 
-_SAVE_DIR = join(LEXICON_DIR, _EXPERIMENT_NAME, _CONFIG_NAME)
+_SAVE_DIR = join(LEXICON_DIR, "framing", _EXPERIMENT_NAME, _CONFIG_NAME)
 
 _REG_CANDIDATES = [1e-2, 5e-3, 1e-3, 5e-4, 1e-4, 5e-5, 1e-5]
 

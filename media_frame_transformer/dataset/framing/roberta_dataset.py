@@ -15,7 +15,7 @@ from media_frame_transformer.dataset.framing.definition import (
     primary_frame_code_to_fidx,
 )
 from media_frame_transformer.dataset.framing.samples import (
-    FramingDataSample,
+    DataSample,
     load_all_framing_samples,
     load_kfold_framing_samples,
 )
@@ -30,10 +30,10 @@ PAD_TOK_IDX = 1
 class PrimaryFrameRobertaDataset(Dataset):
     def __init__(
         self,
-        samples: List[FramingDataSample],
+        samples: List[DataSample],
         labelprops_source: str = "estimated",
     ):
-        self.samples: List[FramingDataSample] = samples
+        self.samples: List[DataSample] = samples
 
         if labelprops_source in {"train"}:
             self.issue2labelprops = get_primary_frame_labelprops_full_split(
