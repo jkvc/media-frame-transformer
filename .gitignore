@@ -1,6 +1,7 @@
 config.py
 
 data/
-otuput/
+output/
+models/
 .vscode
 __pycache__

@@ -1,8 +1,0 @@
-{
-    "train_f1": 1.0,
-    "train_precision": 1.0,
-    "train_recall": 1.0,
-    "valid_f1": 1.0,
-    "valid_precision": 1.0,
-    "valid_recall": 1.0
-}
