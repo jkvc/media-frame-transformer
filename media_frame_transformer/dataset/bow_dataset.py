@@ -49,6 +49,7 @@ def build_bow_full_batch(
     vocab: List[str],
     use_source_individual_norm: bool,
     labelprop_dir: str,
+    labelprop_split: str,
 ):
     word2idx = {w: i for i, w in enumerate(vocab)}
     X = np.zeros((len(samples), len(word2idx)))
@@ -72,7 +73,7 @@ def build_bow_full_batch(
                 continue
             X[idxs] -= X[idxs].mean(axis=0)
 
-    source2labelprops = get_labelprops_full_split(labelprop_dir, "train")
+    source2labelprops = get_labelprops_full_split(labelprop_dir, labelprop_split)
     labelprops = torch.FloatTensor([source2labelprops[s.source_name] for s in samples])
 
     source_idx = torch.LongTensor([s.source_idx for s in samples])
@@ -89,31 +90,33 @@ def build_bow_full_batch(
 
 
 def train_lexicon_model(
-    model, train_samples, vocab_size, use_source_individual_norm, labelprop_dir
+    model,
+    train_samples,
+    vocab_size,
+    use_source_individual_norm,
+    labelprop_dir,
+    labelprop_split,
 ):
     vocab, all_tokens = build_vocab(train_samples, vocab_size)
     batch = build_bow_full_batch(
-        train_samples, all_tokens, vocab, use_source_individual_norm, labelprop_dir
+        train_samples,
+        all_tokens,
+        vocab,
+        use_source_individual_norm,
+        labelprop_dir,
+        labelprop_split,
     )
-
-    tol = 0.00001
 
     optimizer = SGD(model.parameters(), lr=1e-1, weight_decay=0)
 
-    prev_loss = float("inf")
     model.train()
-    for e in trange(10000):
+    for e in trange(5000):
         optimizer.zero_grad()
         outputs = model(batch)
 
         loss = outputs["loss"]
         loss.backward()
         optimizer.step()
-
-        loss = loss.item()
-        if abs(prev_loss - loss) < tol:
-            break
-        prev_loss = loss
 
     train_outputs = model(batch)
     f1, precision, recall = calc_f1(
@@ -126,7 +129,12 @@ def train_lexicon_model(
 
 
 def eval_lexicon_model(
-    model, valid_samples, vocab, use_source_individual_norm, labelprop_dir
+    model,
+    valid_samples,
+    vocab,
+    use_source_individual_norm,
+    labelprop_dir,
+    labelprop_split,
 ):
     batch = build_bow_full_batch(
         valid_samples,
@@ -134,6 +142,7 @@ def eval_lexicon_model(
         vocab,
         use_source_individual_norm,
         labelprop_dir,
+        labelprop_split,
     )
 
     model.eval()
@@ -157,6 +166,8 @@ def run_lexicon_experiment(
     logdir,
     source_names,
     labelprop_dir,
+    train_labelprop_split,
+    valid_labelprop_split,
 ):
     model = get_model(config).to(DEVICE)
     makedirs(logdir, exist_ok=True)
@@ -164,10 +175,20 @@ def run_lexicon_experiment(
     use_source_individual_norm = config["use_source_individual_norm"]
 
     vocab, model, train_metrics = train_lexicon_model(
-        model, train_samples, vocab_size, use_source_individual_norm, labelprop_dir
+        model,
+        train_samples,
+        vocab_size,
+        use_source_individual_norm,
+        labelprop_dir,
+        train_labelprop_split,
     )
     valid_metrics = eval_lexicon_model(
-        model, valid_samples, vocab, use_source_individual_norm, labelprop_dir
+        model,
+        valid_samples,
+        vocab,
+        use_source_individual_norm,
+        labelprop_dir,
+        valid_labelprop_split,
     )
 
     write_str_list_as_txt(vocab, join(logdir, "vocab.txt"))

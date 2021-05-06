@@ -3,7 +3,7 @@
     "multiclass_strategy": "multinomial",
     "use_source_individual_norm": false,
     "use_log_labelprop_bias": true,
-    "vocab_size": 20000,
-    "n_classes": 15,
+    "vocab_size": null,
+    "n_classes": null,
     "reg": 1e-4
 }

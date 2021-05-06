@@ -1,3 +1,7 @@
+from os.path import join
+
+from config import DATA_DIR
+
 ISSUES = [
     "climate",
     "deathpenalty",
@@ -34,3 +38,6 @@ def primary_frame_code_to_fidx(frame_float: float) -> int:
     assert frame_float != 0
     assert frame_float < 16
     return int(frame_float) - 1
+
+
+LABELPROPS_DIR = join(DATA_DIR, "framing_labeled", "labelprops")

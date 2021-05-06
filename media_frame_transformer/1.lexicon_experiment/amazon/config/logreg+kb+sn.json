@@ -1,9 +1,0 @@
-{
-    "arch": "LogRegModel",
-    "multiclass_strategy": "multinomial",
-    "use_source_individual_norm": true,
-    "use_log_labelprop_bias": true,
-    "vocab_size": 20000,
-    "n_classes": 5,
-    "reg": 1e-4
-}

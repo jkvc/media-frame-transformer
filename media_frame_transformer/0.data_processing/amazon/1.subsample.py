@@ -10,7 +10,7 @@ from config import DATA_DIR
 from media_frame_transformer.utils import ParallelHandler, save_json
 from tqdm import tqdm
 
-_N_SAMPLE_PER_CATEGORY = 3000
+_SUBSAMPLE_PROP = 0.002
 _KEEP_KEYS = ["overall", "reviewTime", "reviewText"]
 _TRAIN_PROP, _VALID_PROP, _TEST_PROP = [0.8, 0.1, 0.1]
 
@@ -30,9 +30,10 @@ def process_category(p):
         lines = [l for l in g]
 
     n_lines = len(lines)
+    n_samples_to_keep = int(n_lines * _SUBSAMPLE_PROP)
     samples = {}
 
-    while len(samples) < _N_SAMPLE_PER_CATEGORY:
+    while len(samples) < n_samples_to_keep:
         idx = randint(0, n_lines)
         l = lines[idx]
         s = json.loads(l)
@@ -46,9 +47,9 @@ def process_category(p):
 
     all_sample_ids = list(samples.keys())
     shuffle(all_sample_ids)
-    n_train = int(_N_SAMPLE_PER_CATEGORY * _TRAIN_PROP)
-    n_valid = int(_N_SAMPLE_PER_CATEGORY * _VALID_PROP)
-    n_test = _N_SAMPLE_PER_CATEGORY - n_train - n_valid
+    n_train = int(n_samples_to_keep * _TRAIN_PROP)
+    n_valid = int(n_samples_to_keep * _VALID_PROP)
+    n_test = n_samples_to_keep - n_train - n_valid
     save_json(
         all_sample_ids[:n_train], join(_SPLITS_DIR, f"{category_name}.train.json")
     )

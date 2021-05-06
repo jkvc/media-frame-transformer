@@ -1,0 +1,11 @@
+{
+    "arch": "LogRegGradientReversal",
+    "multiclass_strategy": "multinomial",
+    "use_source_individual_norm": false,
+    "use_log_labelprop_bias": true,
+    "n_sources": null,
+    "hidden_size": 64,
+    "vocab_size": null,
+    "n_classes": null,
+    "reg": 1e-4
+}

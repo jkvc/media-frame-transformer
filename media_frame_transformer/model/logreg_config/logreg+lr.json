@@ -2,8 +2,8 @@
     "arch": "LogRegLearnedResidualization",
     "multiclass_strategy": "multinomial",
     "use_source_individual_norm": false,
-    "confound_input_size": 14,
-    "vocab_size": 20000,
-    "n_classes": 5,
+    "n_sources": null,
+    "vocab_size": null,
+    "n_classes": null,
     "reg": 1e-4
 }
