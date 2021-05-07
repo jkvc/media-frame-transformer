@@ -1,0 +1,9 @@
+{
+    "arch": "RobertaClassifier",
+    "multiclass_strategy": "multinomial",
+    "dropout_p": 0.2,
+    "use_log_labelprop_bias": true,
+    "n_classes": null,
+    "use_gradient_reversal": true,
+    "n_sources": null
+}
