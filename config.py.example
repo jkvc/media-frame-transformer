@@ -2,10 +2,14 @@ from os.path import dirname, join, realpath
 
 REPO_ROOT = dirname(realpath(__file__))
 
-DATA_DIR = join(REPO_ROOT, "data")
-FIGURES_DIR = join(REPO_ROOT, "figures")
-OUTPUTS_DIR = join(REPO_ROOT, "outputs")
-LEX_DIR = join(REPO_ROOT, "lexicons")
+_DATA_DIRNAME = "data"
+DATA_DIR = join(REPO_ROOT, _DATA_DIRNAME)
+
+_OUTPUT_DIRNAME = "output"
+OUTPUT_DIR = join(REPO_ROOT, _OUTPUT_DIRNAME)
+_LEXICON_DIRNAME = "lexicon"
+LEXICON_DIR = join(OUTPUT_DIR, _LEXICON_DIRNAME)
+
 
 MODELS_DIR = join(REPO_ROOT, "models")
 # MODELS_DIR = "/juice/scr/jkc1/models"  # cluster
@@ -13,22 +17,10 @@ MODELS_DIR = join(REPO_ROOT, "models")
 
 RANDOM_SEED = 0xDEADBEEF
 
-ISSUES = [
-    "climate",
-    "deathpenalty",
-    "guncontrol",
-    "immigration",
-    "samesex",
-    "tobacco",
-]
 
 KFOLD = 8
 FOLDS_TO_RUN = [0, 1, 2]
 # FOLDS_TO_RUN = [0, 1, 2, 3, 4, 5, 6, 7]
 
-N_CLASSES = 15
 BATCHSIZE = 25
-
 DATASET_SIZES = [125, 250, 500, 1000]
-
-VOCAB_SIZE = 2000
