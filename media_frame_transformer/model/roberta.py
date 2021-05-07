@@ -36,10 +36,12 @@ class RobertaClassifier(nn.Module):
             nn.Tanh(),
         )
 
+        self.use_log_labelprop_bias = config["use_log_labelprop_bias"]
         self.n_classes = config["n_classes"]
+        yff_use_bias = not self.use_log_labelprop_bias
         self.yff = nn.Sequential(
             nn.Dropout(p=self.dropout_p),
-            nn.Linear(ROBERAT_EMB_SIZE, self.n_classes),
+            nn.Linear(ROBERAT_EMB_SIZE, self.n_classes, bias=yff_use_bias),
         )
 
         self.use_gradient_reversal = config["use_gradient_reversal"]
@@ -49,8 +51,6 @@ class RobertaClassifier(nn.Module):
                 ReversalLayer(),
                 nn.Linear(ROBERAT_EMB_SIZE, n_sources),
             )
-
-        self.use_log_labelprop_bias = config["use_log_labelprop_bias"]
 
     def forward(self, batch):
         x = batch["x"].to(DEVICE)
