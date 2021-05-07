@@ -5,5 +5,6 @@
     "use_log_labelprop_bias": false,
     "n_classes": null,
     "use_gradient_reversal": true,
+    "gradient_reversal_strength": 0.1,
     "n_sources": null
 }

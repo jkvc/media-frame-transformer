@@ -30,16 +30,14 @@ class RobertaClassifier(nn.Module):
         self.roberta = RobertaModel.from_pretrained(
             "roberta-base", hidden_dropout_prob=self.dropout_p
         )
-        self.ff = nn.Sequential(
-            nn.Dropout(p=self.dropout_p),
-            nn.Linear(ROBERAT_EMB_SIZE, ROBERAT_EMB_SIZE),
-            nn.Tanh(),
-        )
 
         self.use_log_labelprop_bias = config["use_log_labelprop_bias"]
         self.n_classes = config["n_classes"]
         yff_use_bias = not self.use_log_labelprop_bias
         self.yff = nn.Sequential(
+            nn.Dropout(p=self.dropout_p),
+            nn.Linear(ROBERAT_EMB_SIZE, ROBERAT_EMB_SIZE),
+            nn.Tanh(),
             nn.Dropout(p=self.dropout_p),
             nn.Linear(ROBERAT_EMB_SIZE, self.n_classes, bias=yff_use_bias),
         )
@@ -47,6 +45,7 @@ class RobertaClassifier(nn.Module):
         self.use_gradient_reversal = config["use_gradient_reversal"]
         n_sources = config["n_sources"]
         if self.use_gradient_reversal:
+            self.gradient_reversal_strength = config["gradient_reversal_strength"]
             self.cff = nn.Sequential(
                 ReversalLayer(),
                 nn.Linear(ROBERAT_EMB_SIZE, n_sources),
@@ -60,9 +59,8 @@ class RobertaClassifier(nn.Module):
 
         # huggingface robertaclassifier applies dropout before this, we apply dropout after this
         # shouldnt make a big difference
-        x = x[:, 0, :]  # the <s> tokens, i.e. <CLS>
+        e = x[:, 0, :]  # the <s> tokens, i.e. <CLS>
 
-        e = self.ff(x)
         logits = self.yff(e)
 
         if self.use_log_labelprop_bias:
@@ -78,7 +76,7 @@ class RobertaClassifier(nn.Module):
             confound_loss, _ = calc_multiclass_loss(
                 confound_logits, batch["source_idx"].to(DEVICE), "multinomial"
             )
-            loss = loss + confound_loss
+            loss = loss + confound_loss * self.gradient_reversal_strength
 
         loss = loss.mean()
         return {
