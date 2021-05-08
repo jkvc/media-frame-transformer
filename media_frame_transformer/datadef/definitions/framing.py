@@ -91,7 +91,7 @@ def load_kfold_framing_samples(issues: List[str]) -> List[Dict[str, List[DataSam
     return kidx2split2samples
 
 
-def load_splits(issues: List[str], splits: List[str]):
+def load_splits(issues: List[str], splits: List[str]) -> Dict[str, List[DataSample]]:
     ret = {}
 
     if "valid" in splits:
