@@ -32,7 +32,7 @@ def train(
     num_early_stop_non_improve_epoch=NUM_EARLY_STOP_NON_IMPROVE_EPOCH,
     batchsize=TRAIN_BATCHSIZE,
     n_dataloader_worker=N_DATALOADER_WORKER,
-    save_model=True,
+    save_model_checkpoint=True,
     keep_latest=False,
     skip_train_zeroth_epoch=False,
     valid_every_n_epoch=1,
@@ -67,14 +67,7 @@ def train(
     writer = SummaryWriter(logdir)
     # lowest_valid_loss = float("inf")
 
-    metrics = {
-        # "train_acc": 0,
-        "train_loss": float("inf"),
-        "train_f1": 0,
-        # "valid_acc": 0,
-        "valid_loss": float("inf"),
-        "valid_f1": 0,
-    }
+    metrics = {}
     num_non_improve_epoch = 0
 
     for e in range(max_epochs):
@@ -86,7 +79,7 @@ def train(
         else:
             train_metrics = train_epoch(model, optimizer, train_loader, writer, e)
             for k, v in train_metrics.items():
-                metrics[f"train_{k}"] = v
+                metrics[f"train_{k}.latest"] = v
 
         # valid
         if e % valid_every_n_epoch != 0 and e != max_epochs - 1:
@@ -95,28 +88,25 @@ def train(
             valid_metrics = valid_epoch(model, valid_loader, writer, e)
             valid_f1 = valid_metrics["f1"]
 
-            if valid_f1 > metrics["valid_f1"]:
+            for k, v in valid_metrics.items():
+                metrics[f"valid_{k}.latest"] = v
+
+            best_valid_f1 = metrics.get("valid_f1.best", -1)
+            is_valid_improve = valid_f1 > best_valid_f1
+            if is_valid_improve:
+                for k, v in valid_metrics.items():
+                    metrics[f"valid_{k}.best"] = v
                 metrics["best_valid_epoch_idx"] = e
 
-            if valid_f1 > metrics["valid_f1"] or keep_latest:
-                # new best, save stuff
-                is_this_epoch_valid_improve = True
-                if keep_latest:
-                    print("** keeping latest")
-                else:
-                    print("++ new best valid f1")
-                for k, v in valid_metrics.items():
-                    metrics[f"valid_{k}"] = v
-                num_non_improve_epoch = 0
+            should_save_checkpoint_this_epoch = is_valid_improve or keep_latest
+            if should_save_checkpoint_this_epoch and save_model_checkpoint:
                 metrics["saved_checkpoint_epoch_idx"] = e
-                if save_model:
-                    print(
-                        f'++ save model checkpoint to {join(logdir, "checkpoint.pth")}'
-                    )
-                    torch.save(model, join(logdir, "checkpoint.pth"))
+                print(f'++ save model checkpoint to {join(logdir, "checkpoint.pth")}')
+                torch.save(model, join(logdir, "checkpoint.pth"))
+
+            if is_valid_improve:
+                num_non_improve_epoch = 0
             else:
-                # not improving
-                is_this_epoch_valid_improve = False
                 num_non_improve_epoch += 1
                 print("~~ not improved epoch #", num_non_improve_epoch)
                 if num_non_improve_epoch >= num_early_stop_non_improve_epoch:
@@ -129,9 +119,10 @@ def train(
                     additional_valid_metrics = valid_epoch(
                         model, set_valid_loader, writer, e, set_name
                     )
-                    if is_this_epoch_valid_improve:
-                        for k, v in additional_valid_metrics.items():
-                            metrics[f"{set_name}_{k}"] = v
+                    for k, v in additional_valid_metrics.items():
+                        metrics[f"{set_name}_{k}.latest"] = v
+                        if is_valid_improve:
+                            metrics[f"{set_name}_{k}.at_best_valid"] = v
 
             save_json(metrics, join(logdir, "leaf_metrics.json"))
             save_json(metrics, join(logdir, f"leaf_epoch_{e}.json"))

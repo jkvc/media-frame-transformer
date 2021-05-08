@@ -60,7 +60,7 @@ run_experiments(
     _CONFIG,
     path2datasets,
     batchsize=BATCHSIZE,
-    save_model=True,
+    save_model_checkpoint=True,
     # train a fixed number of epoch since we can't use holdout issue as
     # validation data to early stop
     max_epochs=_N_TRAIN_EPOCH,
