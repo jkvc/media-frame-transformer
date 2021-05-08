@@ -95,6 +95,9 @@ def train(
             valid_metrics = valid_epoch(model, valid_loader, writer, e)
             valid_f1 = valid_metrics["f1"]
 
+            if valid_f1 > metrics["valid_f1"]:
+                metrics["best_valid_epoch_idx"] = e
+
             if valid_f1 > metrics["valid_f1"] or keep_latest:
                 # new best, save stuff
                 is_this_epoch_valid_improve = True
@@ -105,7 +108,7 @@ def train(
                 for k, v in valid_metrics.items():
                     metrics[f"valid_{k}"] = v
                 num_non_improve_epoch = 0
-                metrics["best_epoch"] = e
+                metrics["saved_checkpoint_epoch_idx"] = e
                 if save_model:
                     print(
                         f'++ save model checkpoint to {join(logdir, "checkpoint.pth")}'

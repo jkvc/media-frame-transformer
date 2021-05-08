@@ -15,7 +15,7 @@ from media_frame_transformer.eval import reduce_and_save_metrics
 from media_frame_transformer.experiments import run_experiments
 from media_frame_transformer.model.roberta_config.base import load_roberta_model_config
 
-_N_TRAIN_EPOCH = 4
+_N_TRAIN_EPOCH = 6
 
 _ARCH = sys.argv[1]
 _CONFIG = load_roberta_model_config(_ARCH, PRIMARY_FRAME_N_CLASSES, N_ISSUES)
@@ -65,6 +65,5 @@ run_experiments(
     # validation data to early stop
     max_epochs=_N_TRAIN_EPOCH,
     num_early_stop_non_improve_epoch=_N_TRAIN_EPOCH,
-    keep_latest=True,
 )
 reduce_and_save_metrics(_SAVE_DIR)
