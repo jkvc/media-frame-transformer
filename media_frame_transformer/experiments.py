@@ -10,25 +10,31 @@ from media_frame_transformer.utils import mkdir_overwrite, write_str_list_as_txt
 
 
 def run_experiments(
-    config, path2datasets, path2checkpointpath=None, model_transform=None, **kwargs
+    config,
+    logdir2datasets,
+    logdir2checkpointpath=None,
+    model_transform=None,
+    **kwargs,
 ):
-    path2datasets = {k: path2datasets[k] for k in sorted(list(path2datasets.keys()))}
-    pprint(list(path2datasets.keys()))
+    logdir2datasets = {
+        k: logdir2datasets[k] for k in sorted(list(logdir2datasets.keys()))
+    }
+    pprint(list(logdir2datasets.keys()))
 
-    for path, datasets in path2datasets.items():
-        makedirs(path, exist_ok=True)
-        if exists(join(path, "_complete")):
-            print(">> skip", path)
+    for logdir, datasets in logdir2datasets.items():
+        makedirs(logdir, exist_ok=True)
+        if exists(join(logdir, "_complete")):
+            print(">> skip", logdir)
             continue
 
-        mkdir_overwrite(path)
-        print(">>", path)
+        mkdir_overwrite(logdir)
+        print(">>", logdir)
 
-        if path2checkpointpath is None:
+        if logdir2checkpointpath is None:
             print(">> fresh model")
             model = get_model(config)
         else:
-            checkpoint_path = path2checkpointpath[path]
+            checkpoint_path = logdir2checkpointpath[logdir]
             print(">> load checkpoint from", checkpoint_path)
             model = torch.load(checkpoint_path)
 
@@ -39,7 +45,7 @@ def run_experiments(
             model=model,
             train_dataset=datasets["train"],
             valid_dataset=datasets["valid"],
-            logdir=path,
+            logdir=logdir,
             additional_valid_datasets=(
                 datasets["additional_valid_datasets"]
                 if "additional_valid_datasets" in datasets
@@ -49,4 +55,4 @@ def run_experiments(
         )
 
         # mark done
-        write_str_list_as_txt(["."], join(path, "_complete"))
+        write_str_list_as_txt(["."], join(logdir, "_complete"))
