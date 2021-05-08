@@ -37,26 +37,26 @@ from media_frame_transformer.utils import DEVICE, load_json, save_json
 #     }
 
 
-def eval_pretrained_model(pretrained_model_dir):
-    metrics_json_path = join(pretrained_model_dir, "leaf_metrics.json")
-    if not exists(metrics_json_path):
-        metrics = do_valid_model(pretrained_model_dir)
-        save_json(metrics, metrics_json_path)
-    else:
-        metrics = load_json(metrics_json_path)
+# def eval_pretrained_model(pretrained_model_dir):
+#     metrics_json_path = join(pretrained_model_dir, "leaf_metrics.json")
+#     if not exists(metrics_json_path):
+#         metrics = do_valid_model(pretrained_model_dir)
+#         save_json(metrics, metrics_json_path)
+#     else:
+#         metrics = load_json(metrics_json_path)
 
-    df = pd.DataFrame.from_dict(metrics, orient="index")
-    df.to_csv(join(pretrained_model_dir, "leaf_metrics.csv"))
+#     df = pd.DataFrame.from_dict(metrics, orient="index")
+#     df.to_csv(join(pretrained_model_dir, "leaf_metrics.csv"))
 
 
-def eval_all_leaves(experiment_dir):
-    completed_leaf_paths = sorted(
-        glob(join(experiment_dir, "**", "_complete"), recursive=True)
-    )
-    completed_leaf_dirs = [dirname(p) for p in completed_leaf_paths]
-    for d in completed_leaf_dirs:
-        print("--", d.replace(experiment_dir, ""))
-        eval_pretrained_model(d)
+# def eval_all_leaves(experiment_dir):
+#     completed_leaf_paths = sorted(
+#         glob(join(experiment_dir, "**", "_complete"), recursive=True)
+#     )
+#     completed_leaf_dirs = [dirname(p) for p in completed_leaf_paths]
+#     for d in completed_leaf_dirs:
+#         print("--", d.replace(experiment_dir, ""))
+#         eval_pretrained_model(d)
 
 
 def reduce_tree_inplace(tree):
@@ -96,7 +96,7 @@ def reduce_and_save_metrics(
     )
     if len(leaf_metric_paths) == 0:
         return
-    pprint(leaf_metric_paths)
+    # pprint(leaf_metric_paths)
 
     # build tree to leaf metrics
     tree = {}
@@ -118,10 +118,10 @@ def reduce_and_save_metrics(
                 else:
                     parent[child] = {}
             parent = parent[child]
-    pprint(tree)
+    # pprint(tree)
 
     reduce_tree_inplace(tree)
-    pprint(tree)
+    # pprint(tree)
 
     save_tree(rootdir, tree, save_filename)
 

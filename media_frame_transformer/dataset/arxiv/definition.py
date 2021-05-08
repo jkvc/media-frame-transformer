@@ -1,7 +1,6 @@
 from os.path import join
 
 from config import DATA_DIR
-from media_frame_transformer.dataset.amazon.definition import LABELPROPS_DIR
 
 ARXIV_CATEGORIES = [
     "cs.AI",

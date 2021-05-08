@@ -23,21 +23,17 @@ class RobertaDataset(Dataset):
         samples: List[DataSample],
         n_classes: int,
         source_names: List[str],
-        labelprop_split: str = "estimated",
-        labelprop_dir: Optional[str] = None,
+        source2labelprops: Optional[Dict[str, np.array]] = None,
     ):
         self.samples: List[DataSample] = samples
 
-        if labelprop_split in {"train"}:
-            self.source2labelprops = get_labelprops_full_split(
-                labelprop_dir, labelprop_split
-            )
-        elif labelprop_split == "estimated":
+        if source2labelprops is not None:
+            self.source2labelprops = source2labelprops
+        else:
+            # estimate labelprops in given samples
             self.source2labelprops = calculate_labelprops(
                 samples, n_classes, source_names
             )
-        else:
-            raise NotImplementedError()
 
         self.tokenizer = None
 

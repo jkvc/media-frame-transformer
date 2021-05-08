@@ -1,11 +1,8 @@
-from os import makedirs
 from os.path import dirname, exists, join
 
 import numpy as np
 from config import DATA_DIR
-from media_frame_transformer.dataset.framing.definition import ISSUES
-from media_frame_transformer.dataset.framing.samples import load_all_framing_samples
-from media_frame_transformer.utils import load_json, save_json
+from media_frame_transformer.utils import load_json
 
 
 def calculate_labelprops(samples, n_classes, source_names):
