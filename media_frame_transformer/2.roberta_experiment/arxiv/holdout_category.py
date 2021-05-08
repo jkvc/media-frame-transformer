@@ -16,7 +16,7 @@ from media_frame_transformer.eval import reduce_and_save_metrics
 from media_frame_transformer.experiments import run_experiments
 from media_frame_transformer.model.roberta_config.base import load_roberta_model_config
 
-_N_TRAIN_EPOCH = 6
+_N_TRAIN_EPOCH = 4
 
 _ARCH = sys.argv[1]
 _CONFIG = load_roberta_model_config(_ARCH, YEARRANGE_N_CLASSES, ARXIV_N_CATEGORIES)
