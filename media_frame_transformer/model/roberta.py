@@ -33,13 +33,12 @@ class RobertaClassifier(nn.Module):
 
         self.use_log_labelprop_bias = config["use_log_labelprop_bias"]
         self.n_classes = config["n_classes"]
-        yff_use_bias = not self.use_log_labelprop_bias
         self.yff = nn.Sequential(
             nn.Dropout(p=self.dropout_p),
             nn.Linear(ROBERAT_EMB_SIZE, ROBERAT_EMB_SIZE),
             nn.Tanh(),
             nn.Dropout(p=self.dropout_p),
-            nn.Linear(ROBERAT_EMB_SIZE, self.n_classes, bias=yff_use_bias),
+            nn.Linear(ROBERAT_EMB_SIZE, self.n_classes),
         )
 
         self.use_gradient_reversal = config["use_gradient_reversal"]
