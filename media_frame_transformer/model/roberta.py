@@ -31,7 +31,6 @@ class RobertaClassifier(nn.Module):
             "roberta-base", hidden_dropout_prob=self.dropout_p
         )
 
-        self.use_log_labelprop_bias = config["use_log_labelprop_bias"]
         self.n_classes = config["n_classes"]
         self.yff = nn.Sequential(
             nn.Dropout(p=self.dropout_p),
@@ -41,14 +40,17 @@ class RobertaClassifier(nn.Module):
             nn.Linear(ROBERAT_EMB_SIZE, self.n_classes),
         )
 
-        self.use_gradient_reversal = config["use_gradient_reversal"]
-        n_sources = config["n_sources"]
-        if self.use_gradient_reversal:
-            self.gradient_reversal_strength = config["gradient_reversal_strength"]
+        self.use_learned_residual = config["use_learned_residual"]
+        if self.use_learned_residual:
+            self.n_sources = config["n_sources"]
             self.cff = nn.Sequential(
-                ReversalLayer(),
-                nn.Linear(ROBERAT_EMB_SIZE, n_sources),
+                nn.Linear(self.n_sources, 64),
+                nn.Tanh(),
+                nn.Dropout(p=self.dropout_p),
+                nn.Linear(64, self.n_classes),
             )
+
+        self.use_log_labelprop_bias = config["use_log_labelprop_bias"]
 
     def forward(self, batch):
         x = batch["x"].to(DEVICE)
@@ -68,14 +70,16 @@ class RobertaClassifier(nn.Module):
             )  # nsample, nclass
             logits = logits + torch.log(labelprops)
 
-        loss, labels = calc_multiclass_loss(logits, labels, self.multiclass_strategy)
+        if self.use_learned_residual and self.training:
+            batchsize = len(labels)
+            source_idx = batch["source_idx"].to(DEVICE)
+            source_onehot = torch.FloatTensor(batchsize, self.n_sources).to(DEVICE)
+            source_onehot.zero_()
+            source_onehot.scatter_(1, source_idx.unsqueeze(-1), 1)
+            c = self.cff(source_onehot)
+            logits = logits + c
 
-        if self.use_gradient_reversal and self.training:
-            confound_logits = self.cff(e)
-            confound_loss, _ = calc_multiclass_loss(
-                confound_logits, batch["source_idx"].to(DEVICE), "multinomial"
-            )
-            loss = loss + confound_loss * self.gradient_reversal_strength
+        loss, labels = calc_multiclass_loss(logits, labels, self.multiclass_strategy)
 
         loss = loss.mean()
         return {

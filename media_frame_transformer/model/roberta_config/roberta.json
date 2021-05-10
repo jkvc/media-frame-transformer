@@ -3,7 +3,7 @@
     "multiclass_strategy": "multinomial",
     "dropout_p": 0.2,
     "use_log_labelprop_bias": false,
+    "use_learned_residual": false,
     "n_classes": null,
-    "use_gradient_reversal": false,
     "n_sources": null
 }
