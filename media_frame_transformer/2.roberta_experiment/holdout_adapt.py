@@ -66,7 +66,7 @@ run_experiments(
     _CONFIG,
     logdir2datasets=logdir2datasets,
     logdir2checkpointpath=logdir2checkpointpath,
-    save_model_checkpoint=True,
+    save_model_checkpoint=False,
     keep_latest=True,
     batchsize=BATCHSIZE,
     max_epochs=_N_TRAIN_EPOCH,
