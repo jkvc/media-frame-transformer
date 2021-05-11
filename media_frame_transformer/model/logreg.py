@@ -48,7 +48,7 @@ class LogisticRegressionModel(nn.Module):
         self.tff = nn.Linear(self.vocab_size, self.hidden_size, bias=False)
         self.yout = nn.Linear(self.hidden_size, self.n_classes, bias=False)
         self.cff = nn.Sequential(
-            nn.Linear(self.n_classes, self.hidden_size),
+            nn.Linear(self.n_sources, self.hidden_size),
             nn.Tanh(),
             nn.Linear(self.hidden_size, self.n_classes),
         )
@@ -62,8 +62,8 @@ class LogisticRegressionModel(nn.Module):
         nsample, vocabsize = x.shape
         assert vocabsize == self.vocab_size
 
-        e_t = self.tff(x)
-        logits = self.yout(e_t)
+        e = self.tff(x)
+        logits = self.yout(e)
 
         if self.use_log_labelprop_bias:
             labelprops = (

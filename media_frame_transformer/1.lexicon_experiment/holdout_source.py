@@ -3,6 +3,7 @@
 import sys
 from os.path import basename, join, realpath
 
+import pandas as pd
 from config import BATCHSIZE, LEXICON_DIR, MODELS_DIR
 from media_frame_transformer.datadef.zoo import get_datadef
 from media_frame_transformer.dataset.bow_dataset import run_lexicon_experiment
@@ -25,7 +26,7 @@ _ARCH2CONFIG = load_logreg_model_config_all_archs(
     _DATADEF.n_classes, _DATADEF.n_sources
 )
 for arch, config in _ARCH2CONFIG.items():
-    print("\n" * 3)
+    print("\n")
     print("+" * 30)
     print(arch)
     print("+" * 30)
@@ -48,3 +49,5 @@ for arch, config in _ARCH2CONFIG.items():
             train_labelprop_split="train",
             valid_labelprop_split="train",
         )
+
+    reduce_and_save_metrics(savedir)
