@@ -2,8 +2,9 @@
 
 import sys
 from os.path import basename, join, realpath
+from random import Random
 
-from config import BATCHSIZE, MODELS_DIR
+from config import BATCHSIZE, MODELS_DIR, RANDOM_SEED
 from media_frame_transformer.datadef.zoo import get_datadef
 from media_frame_transformer.dataset.roberta_dataset import RobertaDataset
 from media_frame_transformer.eval import reduce_and_save_metrics
@@ -22,6 +23,8 @@ _SCRIPT_PATH = realpath(__file__)
 _EXPERIMENT_NAME = basename(_SCRIPT_PATH).replace(".py", "")
 _SAVE_DIR = join(MODELS_DIR, _DATASET_NAME, _EXPERIMENT_NAME, _ARCH)
 
+_RNG = Random()
+_RNG.seed(RANDOM_SEED)
 
 logdir2datasets = {}
 
@@ -31,7 +34,19 @@ for train_source in _DATADEF.source_names:
     train_samples = _DATADEF.load_splits_func([train_source], ["train"])["train"]
 
     valid_sources = [s for s in _DATADEF.source_names if s != train_source]
-    valid_samples = _DATADEF.load_splits_func(valid_sources, ["train"])["train"]
+    sourcename2validsamples = {
+        sourcename: _DATADEF.load_splits_func([sourcename], ["train"])["train"]
+        for sourcename in valid_sources
+    }
+    n_valid_samples_per_source = min(
+        len(samples) for samples in sourcename2validsamples.values()
+    )
+    print(n_valid_samples_per_source)
+    valid_samples = []
+    for source_name in valid_sources:
+        all_samples_from_source = sourcename2validsamples[source_name]
+        _RNG.shuffle(all_samples_from_source)
+        valid_samples.extend(all_samples_from_source[:n_valid_samples_per_source])
 
     train_dataset = RobertaDataset(
         train_samples,
