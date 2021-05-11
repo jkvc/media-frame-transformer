@@ -64,20 +64,21 @@ class RobertaClassifier(nn.Module):
 
         logits = self.yff(e)
 
-        if self.use_log_labelprop_bias:
+        if hasattr(self, "use_log_labelprop_bias") and self.use_log_labelprop_bias:
             labelprops = (
                 batch["labelprops"].to(DEVICE).to(torch.float)
             )  # nsample, nclass
             logits = logits + torch.log(labelprops)
 
-        if self.use_learned_residual and self.training:
-            batchsize = len(labels)
-            source_idx = batch["source_idx"].to(DEVICE)
-            source_onehot = torch.FloatTensor(batchsize, self.n_sources).to(DEVICE)
-            source_onehot.zero_()
-            source_onehot.scatter_(1, source_idx.unsqueeze(-1), 1)
-            c = self.cff(source_onehot)
-            logits = logits + c
+        if hasattr(self, "use_learned_residual") and self.use_learned_residual:
+            if self.training:
+                batchsize = len(labels)
+                source_idx = batch["source_idx"].to(DEVICE)
+                source_onehot = torch.FloatTensor(batchsize, self.n_sources).to(DEVICE)
+                source_onehot.zero_()
+                source_onehot.scatter_(1, source_idx.unsqueeze(-1), 1)
+                c = self.cff(source_onehot)
+                logits = logits + c
 
         loss, labels = calc_multiclass_loss(logits, labels, self.multiclass_strategy)
 

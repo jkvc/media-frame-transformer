@@ -21,6 +21,7 @@ _DATADEF = get_datadef(_DATASET_NAME)
 
 _SCRIPT_PATH = realpath(__file__)
 _EXPERIMENT_NAME = basename(_SCRIPT_PATH).replace(".py", "")
+_SAVE_ROOT = join(LEXICON_DIR, _DATASET_NAME, _EXPERIMENT_NAME)
 
 _ARCH2CONFIG = load_logreg_model_config_all_archs(
     _DATADEF.n_classes, _DATADEF.n_sources
@@ -31,7 +32,7 @@ for arch, config in _ARCH2CONFIG.items():
     print(arch)
     print("+" * 30)
 
-    savedir = join(LEXICON_DIR, _DATASET_NAME, _EXPERIMENT_NAME, arch)
+    savedir = join(_SAVE_ROOT, arch)
     for holdout_source in _DATADEF.source_names:
         print(">>", holdout_source)
         train_sources = [s for s in _DATADEF.source_names if s != holdout_source]
@@ -50,4 +51,4 @@ for arch, config in _ARCH2CONFIG.items():
             valid_labelprop_split="train",
         )
 
-    reduce_and_save_metrics(savedir)
+reduce_and_save_metrics(_SAVE_ROOT)
