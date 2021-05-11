@@ -1,11 +1,12 @@
 import re
 from collections import Counter
 from os import makedirs
-from os.path import join
+from os.path import exists, join
 from typing import Dict, List, Tuple
 
 import numpy as np
 import torch
+from media_frame_transformer.datadef.zoo import DatasetDefinition
 from media_frame_transformer.dataset.common import get_labelprops_full_split
 from media_frame_transformer.dataset.data_sample import DataSample
 from media_frame_transformer.learning import calc_f1, print_metrics
@@ -45,10 +46,10 @@ def build_vocab(
 
 def build_bow_full_batch(
     samples: List[DataSample],
+    datadef: DatasetDefinition,
     all_tokens: List[List[str]],
     vocab: List[str],
     use_source_individual_norm: bool,
-    labelprop_dir: str,
     labelprop_split: str,
 ):
     word2idx = {w: i for i, w in enumerate(vocab)}
@@ -73,7 +74,7 @@ def build_bow_full_batch(
                 continue
             X[idxs] -= X[idxs].mean(axis=0)
 
-    source2labelprops = get_labelprops_full_split(labelprop_dir, labelprop_split)
+    source2labelprops = datadef.load_labelprops_func(labelprop_split)
     labelprops = torch.FloatTensor([source2labelprops[s.source_name] for s in samples])
 
     source_idx = torch.LongTensor([s.source_idx for s in samples])
@@ -91,19 +92,19 @@ def build_bow_full_batch(
 
 def train_lexicon_model(
     model,
+    datadef,
     train_samples,
     vocab_size,
     use_source_individual_norm,
-    labelprop_dir,
     labelprop_split,
 ):
     vocab, all_tokens = build_vocab(train_samples, vocab_size)
     batch = build_bow_full_batch(
         train_samples,
+        datadef,
         all_tokens,
         vocab,
         use_source_individual_norm,
-        labelprop_dir,
         labelprop_split,
     )
 
@@ -130,18 +131,18 @@ def train_lexicon_model(
 
 def eval_lexicon_model(
     model,
+    datadef,
     valid_samples,
     vocab,
     use_source_individual_norm,
-    labelprop_dir,
     labelprop_split,
 ):
     batch = build_bow_full_batch(
         valid_samples,
+        datadef,
         get_all_tokens(valid_samples),
         vocab,
         use_source_individual_norm,
-        labelprop_dir,
         labelprop_split,
     )
 
@@ -160,15 +161,18 @@ def eval_lexicon_model(
 
 def run_lexicon_experiment(
     config,
+    datadef,
     train_samples,
     valid_samples,
     vocab_size,
     logdir,
-    source_names,
-    labelprop_dir,
     train_labelprop_split,
     valid_labelprop_split,
 ):
+    complete_marker_path = join(logdir, "_complete")
+    if exists(complete_marker_path):
+        return
+
     model = get_model(config).to(DEVICE)
     makedirs(logdir, exist_ok=True)
 
@@ -176,18 +180,18 @@ def run_lexicon_experiment(
 
     vocab, model, train_metrics = train_lexicon_model(
         model,
+        datadef,
         train_samples,
         vocab_size,
         use_source_individual_norm,
-        labelprop_dir,
         train_labelprop_split,
     )
     valid_metrics = eval_lexicon_model(
         model,
+        datadef,
         valid_samples,
         vocab,
         use_source_individual_norm,
-        labelprop_dir,
         valid_labelprop_split,
     )
 
@@ -200,7 +204,8 @@ def run_lexicon_experiment(
     print_metrics(metrics)
     save_json(metrics, join(logdir, "leaf_metrics.json"))
 
-    df = model.get_weighted_lexicon(vocab, source_names)
+    df = model.get_weighted_lexicon(vocab, datadef.label_names)
     df.to_csv(join(logdir, "lexicon.csv"), index=False)
 
-    return vocab, model, metrics, df
+    # return vocab, model, metrics, df
+    write_str_list_as_txt(["yay"], complete_marker_path)

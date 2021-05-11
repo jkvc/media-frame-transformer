@@ -4,7 +4,7 @@ import sys
 from os.path import basename, dirname, join, realpath
 from random import Random
 
-from config import BATCHSIZE, MODELS_DIR, RANDOM_SEED, ROBERTA_ADAPT_N_SAMPLES
+from config import BATCHSIZE, MODELS_DIR, RANDOM_SEED
 from media_frame_transformer.datadef.zoo import get_datadef
 from media_frame_transformer.dataset.roberta_dataset import RobertaDataset
 from media_frame_transformer.eval import reduce_and_save_metrics
@@ -12,6 +12,7 @@ from media_frame_transformer.experiments import run_experiments
 from media_frame_transformer.model.roberta_config.base import load_roberta_model_config
 
 _N_TRAIN_EPOCH = 10
+_ROBERTA_ADAPT_N_SAMPLES = [125, 250, 500, 1000]
 
 _DATASET_NAME = sys.argv[1]
 _ARCH = sys.argv[2]
@@ -25,6 +26,7 @@ _LOAD_CHECKPOINT_DIR = join(MODELS_DIR, _DATASET_NAME, "holdout_source", _ARCH)
 
 _RNG = Random()
 
+
 logdir2datasets, logdir2checkpointpath = {}, {}
 
 
@@ -35,7 +37,7 @@ for adapt_source in _DATADEF.source_names:
     _RNG.seed(RANDOM_SEED)
     _RNG.shuffle(train_samples)
 
-    for nsample in ROBERTA_ADAPT_N_SAMPLES:
+    for nsample in _ROBERTA_ADAPT_N_SAMPLES:
         selected_train_samples = train_samples[:nsample]
         train_dataset = RobertaDataset(
             selected_train_samples,

@@ -1,9 +1,13 @@
 {
-    "arch": "LogRegModel",
+    "arch": "LogisticRegressionModel",
     "multiclass_strategy": "multinomial",
     "use_source_individual_norm": false,
     "use_log_labelprop_bias": false,
+    "use_learned_residualization": false,
+    "use_gradient_reversal": false,
+    "hidden_size": 64,
     "vocab_size": null,
     "n_classes": null,
+    "n_sources": null,
     "reg": 1e-4
 }
