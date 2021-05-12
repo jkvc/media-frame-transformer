@@ -46,7 +46,7 @@ _LEXICON_CONFIG = load_logreg_model_config_all_archs(
 _SAVE_DIR = join(
     FIGURES_DIR,
     "holdout_source_estimated_labelprops",
-    f"{_DATASET_NAME}.{_LEXICON_ARCH}.{_ROBERTA_ARCH}",
+    _DATASET_NAME,
 )
 makedirs(_SAVE_DIR, exist_ok=True)
 
@@ -65,7 +65,7 @@ for source in _DATADEF.source_names:
 
 # lexicon model predicting with gt & estimated labelprops
 
-_LEXICON_MODEL_PERFORMANCE_SAVE_PATH = join(_SAVE_DIR, "performance_lexicon.json")
+_LEXICON_MODEL_PERFORMANCE_SAVE_PATH = join(_SAVE_DIR, f"{_LEXICON_ARCH}.json")
 
 if not exists(_LEXICON_MODEL_PERFORMANCE_SAVE_PATH):
     orig_metrics = load_json(join(_LEXICON_MODEL_ROOT, "mean_metrics.json"))
@@ -118,7 +118,7 @@ else:
 
 # roberta model predicting with gt and estimated labelprops
 
-_ROBERTA_MODEL_PERFORMANCE_SAVE_PATH = join(_SAVE_DIR, "performance_roberta.json")
+_ROBERTA_MODEL_PERFORMANCE_SAVE_PATH = join(_SAVE_DIR, f"{_ROBERTA_ARCH}.json")
 
 if not exists(_ROBERTA_MODEL_PERFORMANCE_SAVE_PATH):
     orig_metrics = load_json(join(_ROBERTA_MODEL_ROOT, "mean_metrics.json"))
@@ -168,7 +168,7 @@ else:
 
 # plot them
 
-_PLOT_SAVE_PATH = join(_SAVE_DIR, "plot.png")
+_PLOT_SAVE_PATH = join(_SAVE_DIR, f"_plot.{_LEXICON_ARCH}.{_ROBERTA_ARCH}.png")
 plt.clf()
 plt.plot(
     _LABELPROPS_ESTIMATE_NSAMPLES,
