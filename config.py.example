@@ -9,7 +9,8 @@ _OUTPUT_DIRNAME = "output"
 OUTPUT_DIR = join(REPO_ROOT, _OUTPUT_DIRNAME)
 _LEXICON_DIRNAME = "lexicon"
 LEXICON_DIR = join(OUTPUT_DIR, _LEXICON_DIRNAME)
-
+_FIGURES_DIRNAME = "figures"
+FIGURES_DIR = join(OUTPUT_DIR, _FIGURES_DIRNAME)
 
 MODELS_DIR = join(REPO_ROOT, "models")
 # MODELS_DIR = "/juice/scr/jkc1/models"  # cluster
