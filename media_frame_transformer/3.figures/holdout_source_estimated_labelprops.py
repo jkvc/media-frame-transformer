@@ -22,10 +22,8 @@ from media_frame_transformer.model.logreg_config.grid_search import (
 from media_frame_transformer.utils import (
     DEVICE,
     load_json,
-    mkdir_overwrite,
     read_txt_as_str_list,
     save_json,
-    write_str_list_as_txt,
 )
 from media_frame_transformer.viualization import plot_series_w_labels
 from torch.utils.data import DataLoader
