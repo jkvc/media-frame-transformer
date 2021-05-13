@@ -11,10 +11,10 @@ import numpy as np
 import torch
 from config import FIGURES_DIR, LEXICON_DIR, MODELS_DIR, RANDOM_SEED
 from media_frame_transformer.datadef.zoo import get_datadef
-from media_frame_transformer.dataset.bow_dataset import eval_lexicon_model
 from media_frame_transformer.dataset.common import calculate_labelprops
 from media_frame_transformer.dataset.roberta_dataset import RobertaDataset
 from media_frame_transformer.learning import valid_epoch
+from media_frame_transformer.lexicon import eval_lexicon_model
 from media_frame_transformer.model.logreg_config.grid_search import (
     load_logreg_model_config_all_archs,
 )

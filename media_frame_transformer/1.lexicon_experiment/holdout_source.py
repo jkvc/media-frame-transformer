@@ -5,8 +5,8 @@ from os.path import basename, join, realpath
 
 from config import LEXICON_DIR
 from media_frame_transformer.datadef.zoo import get_datadef
-from media_frame_transformer.dataset.bow_dataset import run_lexicon_experiment
 from media_frame_transformer.eval import reduce_and_save_metrics
+from media_frame_transformer.lexicon import run_lexicon_experiment
 from media_frame_transformer.model.logreg_config.grid_search import (
     load_logreg_model_config_all_archs,
 )
