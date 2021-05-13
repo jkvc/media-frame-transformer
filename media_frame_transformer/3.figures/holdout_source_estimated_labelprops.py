@@ -15,7 +15,6 @@ from media_frame_transformer.dataset.bow_dataset import eval_lexicon_model
 from media_frame_transformer.dataset.common import calculate_labelprops
 from media_frame_transformer.dataset.roberta_dataset import RobertaDataset
 from media_frame_transformer.learning import valid_epoch
-from media_frame_transformer.model.logreg_config.base import load_logreg_model_config
 from media_frame_transformer.model.logreg_config.grid_search import (
     load_logreg_model_config_all_archs,
 )
@@ -25,7 +24,6 @@ from media_frame_transformer.utils import (
     read_txt_as_str_list,
     save_json,
 )
-from media_frame_transformer.viualization import plot_series_w_labels
 from torch.utils.data import DataLoader
 
 _DATASET_NAME = sys.argv[1]
