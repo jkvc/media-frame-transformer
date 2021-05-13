@@ -31,10 +31,9 @@ for reg in _L1_REG_CANDIDATES:
     config["reg"] = reg  # override
 
     for holdout_source in _DATADEF.source_names:
-        print(">>", holdout_source)
+        print(">>", holdout_source, reg)
         train_sources = [s for s in _DATADEF.source_names if s != holdout_source]
         train_samples = _DATADEF.load_splits_func(train_sources, ["train"])["train"]
-        # valid using holdout issue all samples
         valid_samples = _DATADEF.load_splits_func(train_sources, ["valid"])["valid"]
 
         run_lexicon_experiment(
