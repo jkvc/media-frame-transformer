@@ -1,5 +1,5 @@
 from os.path import join
-from typing import Dict, List
+from typing import Any, Dict, List
 
 import numpy as np
 from config import DATA_DIR, KFOLD
@@ -44,6 +44,27 @@ def primary_frame_code_to_fidx(frame_float: float) -> int:
     return int(frame_float) - 1
 
 
+PRIMARY_TONE_NAMES = [
+    "Pro",
+    "Neutral",
+    "Anti",
+]
+
+
+def primary_tone_code_to_yidx(tone_float: float) -> int:
+    assert tone_float >= 17 and tone_float < 20
+    return int(tone_float) - 17
+
+
+def code_to_yidx(code: float, task: str) -> int:
+    if task == "primary_frame":
+        return primary_frame_code_to_fidx(code)
+    elif task == "primary_tone":
+        return primary_tone_code_to_yidx(code)
+    else:
+        raise NotImplementedError()
+
+
 def remove_framing_text_headings(text):
     lines = text.split("\n\n")
     lines = lines[3:]  # first 3 lines are id, "PRIMARY", title
@@ -51,14 +72,16 @@ def remove_framing_text_headings(text):
     return text
 
 
-def load_all_framing_samples(issues: List[str], split: str) -> List[DataSample]:
+def load_all_framing_samples(
+    issues: List[str], split: str, task: str
+) -> List[DataSample]:
     assert split in ["train", "test"]
 
     samples = []
     for issue in tqdm(issues):
         ids = load_json(
             join(DATA_DIR, "framing_labeled", f"{issue}_{split}_sets.json")
-        )["primary_frame"]
+        )[task]
         raw_data = load_json(join(DATA_DIR, "framing_labeled", f"{issue}_labeled.json"))
 
         for id in ids:
@@ -66,8 +89,7 @@ def load_all_framing_samples(issues: List[str], split: str) -> List[DataSample]:
                 DataSample(
                     id=id,
                     text=remove_framing_text_headings(raw_data[id]["text"]),
-                    # code=raw_data[id]["primary_frame"],
-                    y_idx=primary_frame_code_to_fidx(raw_data[id]["primary_frame"]),
+                    y_idx=code_to_yidx(raw_data[id][task], task),
                     source_name=issue,
                     source_idx=ISSUE2IIDX[issue],
                 )
@@ -75,15 +97,17 @@ def load_all_framing_samples(issues: List[str], split: str) -> List[DataSample]:
     return samples
 
 
-def load_kfold_framing_samples(issues: List[str]) -> List[Dict[str, List[DataSample]]]:
+def load_kfold_framing_samples(
+    issues: List[str], task: str
+) -> List[Dict[str, List[DataSample]]]:
     kidx2split2samples = [{"train": [], "valid": []} for _ in range(KFOLD)]
 
-    samples = load_all_framing_samples(issues, split="train")
+    samples = load_all_framing_samples(issues, split="train", task=task)
     for issue in tqdm(issues):
         kfold_data = load_json(
             join(DATA_DIR, "framing_labeled", f"{KFOLD}fold", f"{issue}.json")
         )
-        for kidx, fold in enumerate(kfold_data["primary_frame"]):
+        for kidx, fold in enumerate(kfold_data[task]):
             for split in ["train", "valid"]:
                 ids = set(fold[split])
                 selected_samples = [s for s in samples if s.id in ids]
@@ -91,18 +115,20 @@ def load_kfold_framing_samples(issues: List[str]) -> List[Dict[str, List[DataSam
     return kidx2split2samples
 
 
-def load_splits(issues: List[str], splits: List[str]) -> Dict[str, List[DataSample]]:
+def load_splits(
+    issues: List[str], splits: List[str], task: str
+) -> Dict[str, List[DataSample]]:
     ret = {}
 
     if "valid" in splits:
-        split2samples = load_kfold_framing_samples(issues)[0]
+        split2samples = load_kfold_framing_samples(issues, task)[0]
         ret["train"] = split2samples["train"]
         ret["valid"] = split2samples["valid"]
     else:
-        ret["train"] = load_all_framing_samples(issues, "train")
+        ret["train"] = load_all_framing_samples(issues, "train", task)
 
     if "test" in splits:
-        ret["test"] = load_all_framing_samples(issues, "test")
+        ret["test"] = load_all_framing_samples(issues, "test", task)
 
     ret = {k: v for k, v in ret.items() if k in splits}
     return ret
@@ -111,13 +137,13 @@ def load_splits(issues: List[str], splits: List[str]) -> Dict[str, List[DataSamp
 _LABELPROPS_DIR = join(DATA_DIR, "framing_labeled", "labelprops")
 
 
-def load_labelprops(split):
+def load_labelprops(split, task):
     if split == "valid":
         split = "train"  # kfold valid and train are the same set
     return {
         issue: np.array(labelprops)
         for issue, labelprops in load_json(
-            join(_LABELPROPS_DIR, f"{split}.json")
+            join(_LABELPROPS_DIR, f"{task}.{split}.json")
         ).items()
     }
 
@@ -127,7 +153,25 @@ register_datadef(
     DatasetDefinition(
         source_names=ISSUES,
         label_names=PRIMARY_FRAME_NAMES,
-        load_splits_func=load_splits,
-        load_labelprops_func=load_labelprops,
+        load_splits_func=lambda issues, splits: load_splits(
+            issues,
+            splits,
+            "primary_frame",
+        ),
+        load_labelprops_func=lambda splits: load_labelprops(splits, "primary_frame"),
+    ),
+)
+
+register_datadef(
+    "framing_tone",
+    DatasetDefinition(
+        source_names=ISSUES,
+        label_names=PRIMARY_TONE_NAMES,
+        load_splits_func=lambda issues, splits: load_splits(
+            issues,
+            splits,
+            "primary_tone",
+        ),
+        load_labelprops_func=lambda splits: load_labelprops(splits, "primary_tone"),
     ),
 )
