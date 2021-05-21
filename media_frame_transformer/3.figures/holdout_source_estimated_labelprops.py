@@ -128,6 +128,7 @@ if not exists(_LEXICON_MODEL_PERFORMANCE_SAVE_PATH):
         nsample2source2acc[str(nsample)] = source2acc
 
     save_json(nsample2source2acc, _LEXICON_MODEL_PERFORMANCE_SAVE_PATH)
+    lexicon_model_perf = nsample2source2acc
 else:
     lexicon_model_perf = load_json(_LEXICON_MODEL_PERFORMANCE_SAVE_PATH)
 
@@ -139,7 +140,7 @@ _ROBERTA_MODEL_PERFORMANCE_SAVE_PATH = join(_SAVE_DIR, f"{_ROBERTA_ARCH}.json")
 if not exists(_ROBERTA_MODEL_PERFORMANCE_SAVE_PATH):
     orig_metrics = load_json(join(_ROBERTA_MODEL_ROOT, "mean_metrics.json"))
     gt_source2acc = {
-        source: orig_metrics[source]["mean"]["valid_f1"]
+        source: orig_metrics[source]["mean"]["valid_f1.best"]
         for source in _DATADEF.source_names
     }
     gt_source2acc["mean"] = np.array(list(gt_source2acc.values())).mean()
@@ -151,7 +152,7 @@ if not exists(_ROBERTA_MODEL_PERFORMANCE_SAVE_PATH):
         )
     )
     notechnique_source2acc = {
-        source: notechnique_metrics[source]["mean"]["valid_f1"]
+        source: notechnique_metrics[source]["mean"]["valid_f1.best"]
         for source in _DATADEF.source_names
     }
     notechnique_source2acc["mean"] = np.array(
@@ -190,13 +191,14 @@ if not exists(_ROBERTA_MODEL_PERFORMANCE_SAVE_PATH):
                 valid_dataset, batch_size=100, shuffle=False, num_workers=4
             )
             metrics = valid_epoch(model, valid_loader)
-            source2acc["mean"] = np.array(list(source2acc.values())).mean()
+            source2acc[source] = metrics["f1"]
 
+        source2acc["mean"] = np.array(list(source2acc.values())).mean()
         source2acc["std"] = np.array(list(source2acc.values())).std()
         nsample2source2acc[str(nsample)] = source2acc
 
     save_json(nsample2source2acc, _ROBERTA_MODEL_PERFORMANCE_SAVE_PATH)
-
+    roberta_model_perf = nsample2source2acc
 else:
     roberta_model_perf = load_json(_ROBERTA_MODEL_PERFORMANCE_SAVE_PATH)
 
@@ -204,7 +206,14 @@ else:
 
 _PLOT_SAVE_PATH = join(_SAVE_DIR, f"_plot.{_LEXICON_ARCH}.{_ROBERTA_ARCH}.png")
 plt.clf()
+plt.figure(figsize=(10, 8))
 
+plt.axhline(
+    roberta_model_perf["gt"]["mean"],
+    color="teal",
+    linestyle="--",
+    label=f"{_ROBERTA_ARCH} ground truth",
+)
 plt.plot(
     _LABELPROPS_ESTIMATE_NSAMPLES,
     [
@@ -215,18 +224,18 @@ plt.plot(
     label=f"{_ROBERTA_ARCH} estimated",
 )
 plt.axhline(
-    roberta_model_perf["gt"]["mean"],
-    color="teal",
-    linestyle="--",
-    label=f"{_ROBERTA_ARCH} ground truth",
-)
-plt.axhline(
     roberta_model_perf["no_technique"]["mean"],
-    color="teal",
+    color="deepskyblue",
     linestyle="--",
     label=f"roberta",
 )
 
+plt.axhline(
+    lexicon_model_perf["gt"]["mean"],
+    color="firebrick",
+    linestyle="--",
+    label=f"{_LEXICON_ARCH} ground truth",
+)
 plt.plot(
     _LABELPROPS_ESTIMATE_NSAMPLES,
     [
@@ -235,12 +244,6 @@ plt.plot(
     ],
     c="firebrick",
     label=f"{_LEXICON_ARCH} estimated",
-)
-plt.axhline(
-    lexicon_model_perf["gt"]["mean"],
-    color="firebrick",
-    linestyle="--",
-    label=f"{_LEXICON_ARCH} ground truth",
 )
 plt.axhline(
     lexicon_model_perf["no_technique"]["mean"],
