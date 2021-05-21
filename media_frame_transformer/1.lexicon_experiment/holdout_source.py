@@ -33,7 +33,6 @@ for arch, config in _ARCH2CONFIG.items():
     print("+" * 30)
 
     savedir = join(_SAVE_ROOT, arch)
-    save_json(config, join(savedir, "config.json"))
 
     for holdout_source in _DATADEF.source_names:
         print(">>", holdout_source)
@@ -52,5 +51,7 @@ for arch, config in _ARCH2CONFIG.items():
             train_labelprop_split="train",
             valid_labelprop_split="train",
         )
+
+    save_json(config, join(savedir, "config.json"))
 
 reduce_and_save_metrics(_SAVE_ROOT)
