@@ -258,6 +258,7 @@ plt.plot(
         ).mean()
         for nsample in _LABELPROPS_ESTIMATE_NSAMPLES
     ],
+    marker="D",
     c="teal",
     label=f"{_ROBERTA_ARCH} estimated",
 )
@@ -285,6 +286,7 @@ plt.plot(
         ).mean()
         for nsample in _LABELPROPS_ESTIMATE_NSAMPLES
     ],
+    marker="D",
     c="firebrick",
     label=f"{_LEXICON_ARCH} estimated",
 )
@@ -313,6 +315,7 @@ for source in _DATADEF.source_names:
             np.array([roberta_model_perf[str(nsample)][source]["full"]]).mean()
             for nsample in _LABELPROPS_ESTIMATE_NSAMPLES
         ],
+        marker="D",
         c="teal",
         label=f"{_ROBERTA_ARCH} full acc",
     )
@@ -333,6 +336,7 @@ for source in _DATADEF.source_names:
         _LABELPROPS_ESTIMATE_NSAMPLES,
         means,
         c="steelblue",
+        marker="o",
         linestyle="--",
         label=f"{_ROBERTA_ARCH} selected acc",
     )
@@ -349,6 +353,7 @@ for source in _DATADEF.source_names:
             np.array([lexicon_model_perf[str(nsample)][source]["full"]]).mean()
             for nsample in _LABELPROPS_ESTIMATE_NSAMPLES
         ],
+        marker="D",
         c="firebrick",
         label=f"{_LEXICON_ARCH} full acc",
     )
@@ -368,6 +373,7 @@ for source in _DATADEF.source_names:
     plt.plot(
         _LABELPROPS_ESTIMATE_NSAMPLES,
         means,
+        marker="o",
         linestyle="--",
         c="goldenrod",
         label=f"{_LEXICON_ARCH} selected acc",

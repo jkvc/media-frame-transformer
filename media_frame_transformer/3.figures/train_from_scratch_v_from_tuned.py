@@ -67,21 +67,23 @@ holdout_source_acc = np.array(
 
 _PLOT_SAVE_PATH = join(_SAVE_DIR, f"{_ROBERTA_ARCH}.png")
 plt.clf()
+plt.figure(figsize=(10, 8))
 plt.plot(
     ROBERTA_ADAPT_N_SAMPLES,
     [holdout_adapt_nsample2acc[nsample] for nsample in ROBERTA_ADAPT_N_SAMPLES],
+    marker="D",
     c="teal",
     label=f"{_ROBERTA_ARCH} adapted from holdout_source",
 )
-for nsample in ROBERTA_ADAPT_N_SAMPLES:
-    plt.scatter(
-        np.ones((len(_DATADEF.source_names),)) * nsample,
-        holdout_adapt_nsample2accs[nsample],
-        edgecolors="teal",
-        facecolors="none",
-        marker="D",
-        s=12,
-    )
+# for nsample in ROBERTA_ADAPT_N_SAMPLES:
+#     plt.scatter(
+#         np.ones((len(_DATADEF.source_names),)) * nsample,
+#         holdout_adapt_nsample2accs[nsample],
+#         edgecolors="teal",
+#         facecolors="none",
+#         marker="D",
+#         s=12,
+#     )
 plt.axhline(
     holdout_source_acc,
     color="teal",
@@ -91,18 +93,19 @@ plt.axhline(
 plt.plot(
     ROBERTA_ADAPT_N_SAMPLES,
     [from_scratch_nsample2acc[nsample] for nsample in ROBERTA_ADAPT_N_SAMPLES],
+    marker="D",
     c="chocolate",
     label=f"{_ROBERTA_ARCH} adapted from off-the-shelf",
 )
-for nsample in ROBERTA_ADAPT_N_SAMPLES:
-    plt.scatter(
-        np.ones((len(_DATADEF.source_names),)) * nsample,
-        from_scratch_nsample2accs[nsample],
-        edgecolors="chocolate",
-        facecolors="none",
-        marker="D",
-        s=12,
-    )
+# for nsample in ROBERTA_ADAPT_N_SAMPLES:
+#     plt.scatter(
+#         np.ones((len(_DATADEF.source_names),)) * nsample,
+#         from_scratch_nsample2accs[nsample],
+#         edgecolors="chocolate",
+#         facecolors="none",
+#         marker="D",
+#         s=12,
+#     )
 plt.title(f"impact of fine-tuning ({_DATASET_NAME})")
 plt.legend()
 plt.xlabel("# sample for adaptation")
