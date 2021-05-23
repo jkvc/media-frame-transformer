@@ -31,7 +31,7 @@ _DATASET_NAME = sys.argv[1]
 _LEXICON_ARCH = sys.argv[2]
 _ROBERTA_ARCH = sys.argv[3]
 
-_N_TRIALS = 10
+_N_TRIALS = 5
 
 _DATADEF = get_datadef(_DATASET_NAME)
 _LEXICON_MODEL_ROOT = join(LEXICON_DIR, _DATASET_NAME, "holdout_source", _LEXICON_ARCH)
@@ -178,43 +178,58 @@ if not exists(_ROBERTA_MODEL_PERFORMANCE_SAVE_PATH):
         list(notechnique_source2acc.values())
     ).std()
 
-    nsample2source2acc = {
+    roberta_model_perf = {
         "gt": gt_source2acc,
         "no_technique": notechnique_source2acc,
     }
 
     for nsample in _LABELPROPS_ESTIMATE_NSAMPLES:
-        source2acc = {}
-        for source in _DATADEF.source_names:
 
-            samples = source2samples[source]
-            selected_samples = samples[:nsample]
-            estimated_labelprops = calculate_labelprops(
-                selected_samples, _DATADEF.n_classes, _DATADEF.source_names
-            )
+        source2type2accs = defaultdict(lambda: defaultdict(list))
+        for source in _DATADEF.source_names:
+            print(">>", source, nsample)
 
             model = torch.load(join(_ROBERTA_MODEL_ROOT, source, "checkpoint.pth")).to(
                 DEVICE
             )
+            all_samples = source2samples[source]
 
-            valid_dataset = RobertaDataset(
-                samples,
-                _DATADEF.n_classes,
-                _DATADEF.source_names,
-                source2labelprops=estimated_labelprops,
-            )
-            valid_loader = DataLoader(
-                valid_dataset, batch_size=100, shuffle=False, num_workers=4
-            )
-            metrics = valid_epoch(model, valid_loader)
-            source2acc[source] = metrics["f1"]
+            for ti in range(_N_TRIALS):
+                selected_samples = all_samples[ti * nsample : (ti + 1) * nsample]
+                estimated_labelprops = calculate_labelprops(
+                    selected_samples, _DATADEF.n_classes, _DATADEF.source_names
+                )
 
-        source2acc["mean"] = np.array(list(source2acc.values())).mean()
-        source2acc["std"] = np.array(list(source2acc.values())).std()
-        nsample2source2acc[str(nsample)] = source2acc
+                selected_valid_loader = DataLoader(
+                    RobertaDataset(
+                        selected_samples,
+                        _DATADEF.n_classes,
+                        _DATADEF.source_names,
+                        source2labelprops=estimated_labelprops,
+                    ),
+                    batch_size=100,
+                    shuffle=False,
+                    num_workers=1,
+                )
+                selected_metrics = valid_epoch(model, selected_valid_loader)
+                source2type2accs[source]["selected"].append(selected_metrics["f1"])
 
-    save_json(nsample2source2acc, _ROBERTA_MODEL_PERFORMANCE_SAVE_PATH)
-    roberta_model_perf = nsample2source2acc
+                all_valid_loader = DataLoader(
+                    RobertaDataset(
+                        all_samples,
+                        _DATADEF.n_classes,
+                        _DATADEF.source_names,
+                        source2labelprops=estimated_labelprops,
+                    ),
+                    batch_size=100,
+                    shuffle=False,
+                    num_workers=4,
+                )
+                full_metrics = valid_epoch(model, all_valid_loader)
+                source2type2accs[source]["full"].append(full_metrics["f1"])
+
+        roberta_model_perf[str(nsample)] = source2type2accs
+    save_json(roberta_model_perf, _ROBERTA_MODEL_PERFORMANCE_SAVE_PATH)
 else:
     roberta_model_perf = load_json(_ROBERTA_MODEL_PERFORMANCE_SAVE_PATH)
 
