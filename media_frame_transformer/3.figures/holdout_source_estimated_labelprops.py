@@ -335,7 +335,7 @@ for source in _DATADEF.source_names:
     plt.plot(
         _LABELPROPS_ESTIMATE_NSAMPLES,
         means,
-        c="steelblue",
+        c="deepskyblue",
         marker="o",
         linestyle="--",
         label=f"{_ROBERTA_ARCH} selected acc",
