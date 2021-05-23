@@ -240,7 +240,7 @@ makedirs(_PLOT_SAVE_DIR, exist_ok=True)
 
 plt.clf()
 plt.figure(figsize=(10, 8))
-
+# roberta
 plt.axhline(
     roberta_model_perf["gt"]["mean"],
     color="teal",
@@ -250,7 +250,12 @@ plt.axhline(
 plt.plot(
     _LABELPROPS_ESTIMATE_NSAMPLES,
     [
-        roberta_model_perf[str(nsample)]["mean"]
+        np.array(
+            [
+                roberta_model_perf[str(nsample)][source]["full"]
+                for source in _DATADEF.source_names
+            ]
+        ).mean()
         for nsample in _LABELPROPS_ESTIMATE_NSAMPLES
     ],
     c="teal",
@@ -262,24 +267,22 @@ plt.axhline(
     linestyle="--",
     label=f"roberta",
 )
-
+# lexicon
 plt.axhline(
     lexicon_model_perf["gt"]["mean"],
     color="firebrick",
     linestyle="--",
     label=f"{_LEXICON_ARCH} ground truth",
 )
-nsample2fullaccs = {}
-for nsample in _LABELPROPS_ESTIMATE_NSAMPLES:
-    nsample2fullaccs[nsample] = []
-    for source in _DATADEF.source_names:
-        nsample2fullaccs[nsample].extend(
-            lexicon_model_perf[str(nsample)][source]["full"]
-        )
 plt.plot(
     _LABELPROPS_ESTIMATE_NSAMPLES,
     [
-        np.array(nsample2fullaccs[nsample]).mean()
+        np.array(
+            [
+                lexicon_model_perf[str(nsample)][source]["full"]
+                for source in _DATADEF.source_names
+            ]
+        ).mean()
         for nsample in _LABELPROPS_ESTIMATE_NSAMPLES
     ],
     c="firebrick",
@@ -303,41 +306,69 @@ plt.savefig(join(_PLOT_SAVE_DIR, "full_acc.png"))
 for source in _DATADEF.source_names:
     plt.clf()
     plt.figure(figsize=(10, 8))
-
-    nsample2fullaccs = {
-        nsample: lexicon_model_perf[str(nsample)][source]["full"]
-        for nsample in _LABELPROPS_ESTIMATE_NSAMPLES
-    }
-    nsample2selectedaccs = {
-        nsample: lexicon_model_perf[str(nsample)][source]["selected"]
-        for nsample in _LABELPROPS_ESTIMATE_NSAMPLES
-    }
-
+    # roberta single line, full valid accs
     plt.plot(
         _LABELPROPS_ESTIMATE_NSAMPLES,
         [
-            np.array(nsample2fullaccs[nsample]).mean()
+            np.array([roberta_model_perf[str(nsample)][source]["full"]]).mean()
             for nsample in _LABELPROPS_ESTIMATE_NSAMPLES
         ],
-        c="firebrick",
-        label=f"{_LEXICON_ARCH} full acc",
+        c="teal",
+        label=f"{_ROBERTA_ARCH} full acc",
     )
-
+    # roberta line with +-std region, select valid accs
     means = np.array(
         [
-            np.array(nsample2selectedaccs[nsample]).mean()
+            np.array([roberta_model_perf[str(nsample)][source]["selected"]]).mean()
             for nsample in _LABELPROPS_ESTIMATE_NSAMPLES
         ]
     )
     stds = np.array(
         [
-            np.array(nsample2selectedaccs[nsample]).std()
+            np.array([roberta_model_perf[str(nsample)][source]["selected"]]).std()
             for nsample in _LABELPROPS_ESTIMATE_NSAMPLES
         ]
     )
     plt.plot(
         _LABELPROPS_ESTIMATE_NSAMPLES,
         means,
+        c="steelblue",
+        linestyle="--",
+        label=f"{_ROBERTA_ARCH} selected acc",
+    )
+    plt.fill_between(
+        _LABELPROPS_ESTIMATE_NSAMPLES,
+        means - stds,
+        means + stds,
+        color="azure",
+    )
+    # lexicon single line, full valid accs
+    plt.plot(
+        _LABELPROPS_ESTIMATE_NSAMPLES,
+        [
+            np.array([lexicon_model_perf[str(nsample)][source]["full"]]).mean()
+            for nsample in _LABELPROPS_ESTIMATE_NSAMPLES
+        ],
+        c="firebrick",
+        label=f"{_LEXICON_ARCH} full acc",
+    )
+    # lexicon line with +-std region, select valid accs
+    means = np.array(
+        [
+            np.array([lexicon_model_perf[str(nsample)][source]["selected"]]).mean()
+            for nsample in _LABELPROPS_ESTIMATE_NSAMPLES
+        ]
+    )
+    stds = np.array(
+        [
+            np.array([lexicon_model_perf[str(nsample)][source]["selected"]]).std()
+            for nsample in _LABELPROPS_ESTIMATE_NSAMPLES
+        ]
+    )
+    plt.plot(
+        _LABELPROPS_ESTIMATE_NSAMPLES,
+        means,
+        linestyle="--",
         c="goldenrod",
         label=f"{_LEXICON_ARCH} selected acc",
     )
