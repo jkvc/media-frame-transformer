@@ -1,6 +1,7 @@
 # Usage: python <script_name> <dataset_name> <lexicon_arch> <roberta_arch>
 
 import sys
+from collections import defaultdict
 from os import makedirs
 from os.path import exists, join
 from pprint import pprint
@@ -30,6 +31,8 @@ _DATASET_NAME = sys.argv[1]
 _LEXICON_ARCH = sys.argv[2]
 _ROBERTA_ARCH = sys.argv[3]
 
+_N_TRIALS = 10
+
 _DATADEF = get_datadef(_DATASET_NAME)
 _LEXICON_MODEL_ROOT = join(LEXICON_DIR, _DATASET_NAME, "holdout_source", _LEXICON_ARCH)
 _ROBERTA_MODEL_ROOT = join(MODELS_DIR, _DATASET_NAME, "holdout_source", _ROBERTA_ARCH)
@@ -55,9 +58,7 @@ _LABELPROPS_ESTIMATE_NSAMPLES = [50, 100, 150, 200, 250, 300]
 
 source2samples = {}
 for source in _DATADEF.source_names:
-    samples = _DATADEF.load_splits_func([source], ["train"])["train"]
-    _RNG.shuffle(samples)
-    source2samples[source] = samples
+    source2samples[source] = _DATADEF.load_splits_func([source], ["train"])["train"]
 
 # lexicon model predicting with gt & estimated labelprops
 
@@ -88,50 +89,65 @@ if not exists(_LEXICON_MODEL_PERFORMANCE_SAVE_PATH):
         list(notechnique_source2acc.values())
     ).std()
 
-    nsample2source2acc = {
+    lexicon_model_perf = {
         "gt": gt_source2acc,
         "no_technique": notechnique_source2acc,
     }
 
     for nsample in _LABELPROPS_ESTIMATE_NSAMPLES:
-        source2acc = {}
+
+        source2type2accs = defaultdict(lambda: defaultdict(list))
         for source in _DATADEF.source_names:
-
-            samples = source2samples[source]
-            selected_samples = samples[:nsample]
-            estimated_labelprops = {
-                "estimated": calculate_labelprops(
-                    selected_samples, _DATADEF.n_classes, _DATADEF.source_names
-                )
-            }
-            datadef = get_datadef(_DATASET_NAME)
-            datadef.load_labelprops_func = lambda _split: estimated_labelprops[_split]
-
+            print(">>", source, nsample)
+            all_samples = source2samples[source]
             model = torch.load(join(_LEXICON_MODEL_ROOT, source, "model.pth")).to(
                 DEVICE
             )
             vocab = read_txt_as_str_list(join(_LEXICON_MODEL_ROOT, source, "vocab.txt"))
-            metrics = eval_lexicon_model(
-                model,
-                datadef,
-                samples,
-                vocab,
-                use_source_individual_norm=_LEXICON_CONFIG[
-                    "use_source_individual_norm"
-                ],
-                labelprop_split="estimated",  # match _load_labelprops_func()
-            )
-            source2acc[source] = metrics["valid_f1"]
 
-        source2acc["mean"] = np.array(list(source2acc.values())).mean()
-        source2acc["std"] = np.array(list(source2acc.values())).std()
-        nsample2source2acc[str(nsample)] = source2acc
+            for ti in range(_N_TRIALS):
 
-    save_json(nsample2source2acc, _LEXICON_MODEL_PERFORMANCE_SAVE_PATH)
-    lexicon_model_perf = nsample2source2acc
+                selected_samples = all_samples[ti * nsample : (ti + 1) * nsample]
+                estimated_labelprops = {
+                    "estimated": calculate_labelprops(
+                        selected_samples, _DATADEF.n_classes, _DATADEF.source_names
+                    )
+                }
+                datadef = get_datadef(_DATASET_NAME)
+                datadef.load_labelprops_func = lambda _split: estimated_labelprops[
+                    _split
+                ]
+
+                eval_full_metrics = eval_lexicon_model(
+                    model,
+                    datadef,
+                    all_samples,
+                    vocab,
+                    use_source_individual_norm=_LEXICON_CONFIG[
+                        "use_source_individual_norm"
+                    ],
+                    labelprop_split="estimated",  # match _load_labelprops_func()
+                )
+                source2type2accs[source]["full"].append(eval_full_metrics["valid_f1"])
+                eval_selected_metrics = eval_lexicon_model(
+                    model,
+                    datadef,
+                    selected_samples,
+                    vocab,
+                    use_source_individual_norm=_LEXICON_CONFIG[
+                        "use_source_individual_norm"
+                    ],
+                    labelprop_split="estimated",  # match _load_labelprops_func()
+                )
+                source2type2accs[source]["selected"].append(
+                    eval_selected_metrics["valid_f1"]
+                )
+
+        lexicon_model_perf[str(nsample)] = dict(source2type2accs)
+
+    save_json(lexicon_model_perf, _LEXICON_MODEL_PERFORMANCE_SAVE_PATH)
 else:
     lexicon_model_perf = load_json(_LEXICON_MODEL_PERFORMANCE_SAVE_PATH)
-
 
 # roberta model predicting with gt and estimated labelprops
 
@@ -202,9 +218,11 @@ if not exists(_ROBERTA_MODEL_PERFORMANCE_SAVE_PATH):
 else:
     roberta_model_perf = load_json(_ROBERTA_MODEL_PERFORMANCE_SAVE_PATH)
 
-# plot them
+_PLOT_SAVE_DIR = join(_SAVE_DIR, f"{_LEXICON_ARCH}@{_ROBERTA_ARCH}")
+makedirs(_PLOT_SAVE_DIR, exist_ok=True)
 
-_PLOT_SAVE_PATH = join(_SAVE_DIR, f"_plot.{_LEXICON_ARCH}.{_ROBERTA_ARCH}.png")
+# full acc
+
 plt.clf()
 plt.figure(figsize=(10, 8))
 
@@ -236,10 +254,17 @@ plt.axhline(
     linestyle="--",
     label=f"{_LEXICON_ARCH} ground truth",
 )
+nsample2fullaccs = {}
+for nsample in _LABELPROPS_ESTIMATE_NSAMPLES:
+    nsample2fullaccs[nsample] = []
+    for source in _DATADEF.source_names:
+        nsample2fullaccs[nsample].extend(
+            lexicon_model_perf[str(nsample)][source]["full"]
+        )
 plt.plot(
     _LABELPROPS_ESTIMATE_NSAMPLES,
     [
-        lexicon_model_perf[str(nsample)]["mean"]
+        np.array(nsample2fullaccs[nsample]).mean()
         for nsample in _LABELPROPS_ESTIMATE_NSAMPLES
     ],
     c="firebrick",
@@ -252,8 +277,65 @@ plt.axhline(
     label=f"logreg",
 )
 
-plt.title(f"holdout source acc under estimated labelprops ({_DATASET_NAME})")
+plt.title(f"holdout source full acc under estimated labelprops ({_DATASET_NAME})")
 plt.legend()
 plt.xlabel("# sample for labelprops est.")
 plt.ylabel("holdout source acc")
-plt.savefig(_PLOT_SAVE_PATH)
+plt.savefig(join(_PLOT_SAVE_DIR, "full_acc.png"))
+
+# per source acc
+
+for source in _DATADEF.source_names:
+    plt.clf()
+    plt.figure(figsize=(10, 8))
+
+    nsample2fullaccs = {
+        nsample: lexicon_model_perf[str(nsample)][source]["full"]
+        for nsample in _LABELPROPS_ESTIMATE_NSAMPLES
+    }
+    nsample2selectedaccs = {
+        nsample: lexicon_model_perf[str(nsample)][source]["selected"]
+        for nsample in _LABELPROPS_ESTIMATE_NSAMPLES
+    }
+
+    plt.plot(
+        _LABELPROPS_ESTIMATE_NSAMPLES,
+        [
+            np.array(nsample2fullaccs[nsample]).mean()
+            for nsample in _LABELPROPS_ESTIMATE_NSAMPLES
+        ],
+        c="firebrick",
+        label=f"{_LEXICON_ARCH} full acc",
+    )
+
+    means = np.array(
+        [
+            np.array(nsample2selectedaccs[nsample]).mean()
+            for nsample in _LABELPROPS_ESTIMATE_NSAMPLES
+        ]
+    )
+    stds = np.array(
+        [
+            np.array(nsample2selectedaccs[nsample]).std()
+            for nsample in _LABELPROPS_ESTIMATE_NSAMPLES
+        ]
+    )
+    plt.plot(
+        _LABELPROPS_ESTIMATE_NSAMPLES,
+        means,
+        c="goldenrod",
+        label=f"{_LEXICON_ARCH} selected acc",
+    )
+    plt.fill_between(
+        _LABELPROPS_ESTIMATE_NSAMPLES,
+        means - stds,
+        means + stds,
+        color="cornsilk",
+    )
+    plt.title(
+        f"holdout source accs under estimated labelprops ({_DATASET_NAME}:{source})"
+    )
+    plt.legend()
+    plt.xlabel("# sample for labelprops est.")
+    plt.ylabel("holdout source acc")
+    plt.savefig(join(_PLOT_SAVE_DIR, f"compare_{source}.png"))
