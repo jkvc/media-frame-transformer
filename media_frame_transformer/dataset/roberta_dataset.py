@@ -55,6 +55,7 @@ class RobertaDataset(Dataset):
         )
 
         return {
+            "id": sample.id,
             "x": x,
             "y": sample.y_idx,
             "labelprops": self.source2labelprops[sample.source_name],
