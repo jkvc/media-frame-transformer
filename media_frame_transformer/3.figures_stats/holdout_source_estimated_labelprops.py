@@ -52,7 +52,14 @@ makedirs(_SAVE_DIR, exist_ok=True)
 _RNG = Random()
 _RNG.seed(RANDOM_SEED)
 
-_LABELPROPS_ESTIMATE_NSAMPLES = [50, 100, 150, 200, 250, 300]
+_LABELPROPS_ESTIMATE_NSAMPLES = [100, 150, 200, 250, 300, 350, 400]
+
+
+def _2fold(samples):
+    halfsize = len(samples) // 2
+    firsthalf, secondhalf = samples[:halfsize], samples[halfsize:]
+    return [[firsthalf, secondhalf], [secondhalf, firsthalf]]
+
 
 # load samples, shuffle once, use this seeded shuffle order for all evals
 
@@ -105,49 +112,46 @@ if not exists(_LEXICON_MODEL_PERFORMANCE_SAVE_PATH):
             )
             vocab = read_txt_as_str_list(join(_LEXICON_MODEL_ROOT, source, "vocab.txt"))
 
-            for ti in range(_N_TRIALS):
-
-                selected_samples = all_samples[ti * nsample : (ti + 1) * nsample]
+            def _eval_lex_model(label_est_samples, valid_samples) -> float:
                 estimated_labelprops = {
                     "estimated": calculate_labelprops(
-                        selected_samples, _DATADEF.n_classes, _DATADEF.source_names
+                        label_est_samples,
+                        _DATADEF.n_classes,
+                        _DATADEF.source_names,
                     )
                 }
                 datadef = get_datadef(_DATASET_NAME)
                 datadef.load_labelprops_func = lambda _split: estimated_labelprops[
                     _split
                 ]
+                metrics = eval_lexicon_model(
+                    model,
+                    datadef,
+                    valid_samples,
+                    vocab,
+                    use_source_individual_norm=_LEXICON_CONFIG[
+                        "use_source_individual_norm"
+                    ],
+                    labelprop_split="estimated",  # match _load_labelprops_func()
+                )
+                return metrics["valid_f1"]
 
-                eval_full_metrics = eval_lexicon_model(
-                    model,
-                    datadef,
-                    all_samples,
-                    vocab,
-                    use_source_individual_norm=_LEXICON_CONFIG[
-                        "use_source_individual_norm"
-                    ],
-                    labelprop_split="estimated",  # match _load_labelprops_func()
-                )
-                source2type2accs[source]["full"].append(eval_full_metrics["valid_f1"])
-                eval_selected_metrics = eval_lexicon_model(
-                    model,
-                    datadef,
-                    selected_samples,
-                    vocab,
-                    use_source_individual_norm=_LEXICON_CONFIG[
-                        "use_source_individual_norm"
-                    ],
-                    labelprop_split="estimated",  # match _load_labelprops_func()
-                )
-                source2type2accs[source]["selected"].append(
-                    eval_selected_metrics["valid_f1"]
-                )
+            for ti in range(_N_TRIALS):
+                selected_sample = all_samples[ti * nsample : (ti + 1) * nsample]
+
+                for label_est_samples, valid_samples in _2fold(selected_sample):
+                    acc = _eval_lex_model(label_est_samples, valid_samples)
+                    source2type2accs[source]["selected"].append(acc)
+
+                fullacc = _eval_lex_model(selected_sample, all_samples)
+                source2type2accs[source]["full"].append(fullacc)
 
         lexicon_model_perf[str(nsample)] = dict(source2type2accs)
 
     save_json(lexicon_model_perf, _LEXICON_MODEL_PERFORMANCE_SAVE_PATH)
 else:
     lexicon_model_perf = load_json(_LEXICON_MODEL_PERFORMANCE_SAVE_PATH)
+
 
 # roberta model predicting with gt and estimated labelprops
 
@@ -194,15 +198,15 @@ if not exists(_ROBERTA_MODEL_PERFORMANCE_SAVE_PATH):
             )
             all_samples = source2samples[source]
 
-            for ti in range(_N_TRIALS):
-                selected_samples = all_samples[ti * nsample : (ti + 1) * nsample]
+            def _eval_roberta_model(label_est_samples, valid_samples) -> float:
                 estimated_labelprops = calculate_labelprops(
-                    selected_samples, _DATADEF.n_classes, _DATADEF.source_names
+                    label_est_samples,
+                    _DATADEF.n_classes,
+                    _DATADEF.source_names,
                 )
-
-                selected_valid_loader = DataLoader(
+                valid_loader = DataLoader(
                     RobertaDataset(
-                        selected_samples,
+                        valid_samples,
                         _DATADEF.n_classes,
                         _DATADEF.source_names,
                         source2labelprops=estimated_labelprops,
@@ -211,22 +215,18 @@ if not exists(_ROBERTA_MODEL_PERFORMANCE_SAVE_PATH):
                     shuffle=False,
                     num_workers=1,
                 )
-                selected_metrics = valid_epoch(model, selected_valid_loader)
-                source2type2accs[source]["selected"].append(selected_metrics["f1"])
+                metrics = valid_epoch(model, valid_loader)
+                return metrics["f1"]
 
-                all_valid_loader = DataLoader(
-                    RobertaDataset(
-                        all_samples,
-                        _DATADEF.n_classes,
-                        _DATADEF.source_names,
-                        source2labelprops=estimated_labelprops,
-                    ),
-                    batch_size=100,
-                    shuffle=False,
-                    num_workers=4,
-                )
-                full_metrics = valid_epoch(model, all_valid_loader)
-                source2type2accs[source]["full"].append(full_metrics["f1"])
+            for ti in range(_N_TRIALS):
+                selected_sample = all_samples[ti * nsample : (ti + 1) * nsample]
+
+                for label_est_samples, valid_samples in _2fold(selected_sample):
+                    acc = _eval_roberta_model(label_est_samples, valid_samples)
+                    source2type2accs[source]["selected"].append(acc)
+
+                fullacc = _eval_roberta_model(selected_sample, all_samples)
+                source2type2accs[source]["full"].append(fullacc)
 
         roberta_model_perf[str(nsample)] = source2type2accs
     save_json(roberta_model_perf, _ROBERTA_MODEL_PERFORMANCE_SAVE_PATH)

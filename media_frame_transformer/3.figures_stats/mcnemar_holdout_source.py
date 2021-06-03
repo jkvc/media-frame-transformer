@@ -2,7 +2,7 @@
 
 import sys
 from os import makedirs
-from os.path import basename, exists, join, realpath
+from os.path import exists, join
 
 import numpy as np
 import torch
@@ -13,12 +13,9 @@ from media_frame_transformer.dataset.bow_dataset import (
     get_all_tokens,
 )
 from media_frame_transformer.dataset.roberta_dataset import RobertaDataset
-from media_frame_transformer.eval import reduce_and_save_metrics
-from media_frame_transformer.experiments import run_experiments
 from media_frame_transformer.model.logreg_config.grid_search import (
     load_logreg_model_config_all_archs,
 )
-from media_frame_transformer.model.roberta_config.base import load_roberta_model_config
 from media_frame_transformer.utils import (
     DEVICE,
     load_json,
@@ -26,7 +23,7 @@ from media_frame_transformer.utils import (
     save_json,
 )
 from statsmodels.stats.contingency_tables import mcnemar
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 _DATASET_NAME = sys.argv[1]
