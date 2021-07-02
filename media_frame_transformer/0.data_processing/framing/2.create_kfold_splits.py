@@ -3,8 +3,11 @@ from os.path import join
 from random import Random
 
 import numpy as np
-from config import DATA_DIR, ISSUES, KFOLD, RANDOM_SEED
+from config import DATA_DIR, KFOLD, RANDOM_SEED
+from media_frame_transformer.datadef import zoo
 from media_frame_transformer.utils import load_json, save_json
+
+ISSUES = zoo.get_datadef("framing").source_names
 
 RNG = Random()
 RNG.seed(RANDOM_SEED)

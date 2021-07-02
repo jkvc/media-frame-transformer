@@ -13,6 +13,7 @@ ISSUES = [
     "deathpenalty",
     "guncontrol",
     "immigration",
+    # "police",  # FIXME
     "samesex",
     "tobacco",
 ]

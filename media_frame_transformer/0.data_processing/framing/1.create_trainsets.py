@@ -1,10 +1,13 @@
 from os.path import join
 
 import pandas as pd
-from config import DATA_DIR, ISSUES
+from config import DATA_DIR
+from media_frame_transformer.datadef import zoo
 from media_frame_transformer.utils import load_json, save_json
 
 FRAMING_DATA_DIR = join(DATA_DIR, "framing_labeled")
+ISSUES = zoo.get_datadef("framing").source_names
+
 
 if __name__ == "__main__":
     stats = []
