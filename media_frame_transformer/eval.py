@@ -3,6 +3,7 @@
 from collections import defaultdict
 from glob import glob
 from os.path import dirname, exists, join
+from posixpath import splitext
 from pprint import pprint
 
 import pandas as pd
@@ -83,7 +84,7 @@ def save_tree(rootdir, tree, save_filename):
 
     meanrows["mean"] = tree["mean"]
     df = pd.DataFrame.from_dict(meanrows, orient="index")
-    df.to_csv(join(rootdir, "mean_metrics.csv"))
+    df.to_csv(join(rootdir, splitext(save_filename)[0] + ".csv"))
 
 
 def reduce_and_save_metrics(

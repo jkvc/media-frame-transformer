@@ -132,6 +132,17 @@ def train(
     writer.close()
 
 
+def do_valid(model, dataset):
+    loader = DataLoader(
+        dataset,
+        batch_size=VALID_BATCHSIZE,
+        shuffle=True,
+        num_workers=N_DATALOADER_WORKER,
+    )
+    metrics = valid_epoch(model, loader)
+    return metrics
+
+
 def valid_epoch(model, valid_loader, writer=None, epoch_idx=None, valid_set_name=None):
     model.eval()
     all_logits = []
