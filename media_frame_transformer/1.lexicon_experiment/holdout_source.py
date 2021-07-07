@@ -3,14 +3,15 @@
 import sys
 from os.path import basename, join, realpath
 
+import torch
 from config import LEXICON_DIR
 from media_frame_transformer.datadef.zoo import get_datadef
 from media_frame_transformer.eval import reduce_and_save_metrics
-from media_frame_transformer.lexicon import run_lexicon_experiment
+from media_frame_transformer.lexicon import eval_lexicon_model, run_lexicon_experiment
 from media_frame_transformer.model.logreg_config.grid_search import (
     load_logreg_model_config_all_archs,
 )
-from media_frame_transformer.utils import save_json
+from media_frame_transformer.utils import read_txt_as_str_list, save_json
 
 _DATASET_NAME = sys.argv[1]
 _REG = float(sys.argv[2])
@@ -52,6 +53,21 @@ for arch, config in _ARCH2CONFIG.items():
             valid_labelprop_split="train",
         )
 
+        model = torch.load(join(savedir, holdout_source, "model.pth"))
+        vocab = read_txt_as_str_list(join(savedir, holdout_source, "vocab.txt"))
+
+        test_samples = _DATADEF.load_splits_func([holdout_source], ["test"])["test"]
+        test_metrics = eval_lexicon_model(
+            model,
+            _DATADEF,
+            test_samples,
+            vocab,
+            use_source_individual_norm=config["use_source_individual_norm"],
+            labelprop_split="test",
+        )
+        save_json(test_metrics, join(savedir, holdout_source, "leaf_test.json"))
+
     save_json(config, join(savedir, "config.json"))
 
 reduce_and_save_metrics(_SAVE_ROOT)
+reduce_and_save_metrics(_SAVE_ROOT, "leaf_test.json", "mean_test.json")

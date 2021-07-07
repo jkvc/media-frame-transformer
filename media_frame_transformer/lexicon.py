@@ -12,7 +12,12 @@ from media_frame_transformer.dataset.bow_dataset import (
 )
 from media_frame_transformer.learning import calc_f1, print_metrics
 from media_frame_transformer.model import get_model
-from media_frame_transformer.utils import DEVICE, save_json, write_str_list_as_txt
+from media_frame_transformer.utils import (
+    DEVICE,
+    read_txt_as_str_list,
+    save_json,
+    write_str_list_as_txt,
+)
 
 
 def train_lexicon_model(
@@ -134,3 +139,5 @@ def run_lexicon_experiment(
 
     # return vocab, model, metrics, df
     write_str_list_as_txt(["yay"], complete_marker_path)
+
+    return model, vocab
