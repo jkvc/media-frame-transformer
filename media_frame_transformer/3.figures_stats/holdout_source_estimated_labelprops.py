@@ -24,6 +24,7 @@ from media_frame_transformer.utils import (
     load_json,
     read_txt_as_str_list,
     save_json,
+    stylize_model_arch_for_figures,
 )
 from torch.utils.data import DataLoader
 
@@ -239,13 +240,13 @@ makedirs(_PLOT_SAVE_DIR, exist_ok=True)
 # full acc
 
 plt.clf()
-plt.figure(figsize=(10, 8))
+plt.figure(figsize=(7, 5))
 # roberta
 plt.axhline(
     roberta_model_perf["gt"]["mean"],
     color="teal",
     linestyle="--",
-    label=f"{_ROBERTA_ARCH} ground truth",
+    label=f"{stylize_model_arch_for_figures(_ROBERTA_ARCH)} w/ gt label distribution",
 )
 plt.plot(
     _LABELPROPS_ESTIMATE_NSAMPLES,
@@ -260,20 +261,20 @@ plt.plot(
     ],
     marker="D",
     c="teal",
-    label=f"{_ROBERTA_ARCH} estimated",
+    label=f"{stylize_model_arch_for_figures(_ROBERTA_ARCH)} w/ estimated label distribution",
 )
 plt.axhline(
     roberta_model_perf["no_technique"]["mean"],
     color="deepskyblue",
     linestyle="--",
-    label=f"roberta",
+    label=stylize_model_arch_for_figures("roberta"),
 )
 # lexicon
 plt.axhline(
     lexicon_model_perf["gt"]["mean"],
     color="firebrick",
     linestyle="--",
-    label=f"{_LEXICON_ARCH} ground truth",
+    label=f"{stylize_model_arch_for_figures(_LEXICON_ARCH)} w/ gt label distribution",
 )
 plt.plot(
     _LABELPROPS_ESTIMATE_NSAMPLES,
@@ -288,26 +289,26 @@ plt.plot(
     ],
     marker="D",
     c="firebrick",
-    label=f"{_LEXICON_ARCH} estimated",
+    label=f"{stylize_model_arch_for_figures(_LEXICON_ARCH)} w/ estimated label distribution",
 )
 plt.axhline(
     lexicon_model_perf["no_technique"]["mean"],
     color="orange",
     linestyle="--",
-    label=f"logreg",
+    label=stylize_model_arch_for_figures("logreg"),
 )
 
-plt.title(f"holdout source full acc under estimated labelprops ({_DATASET_NAME})")
+# plt.title(f"holdout source full acc under estimated labelprops ({_DATASET_NAME})")
 plt.legend()
-plt.xlabel("# sample for labelprops est.")
-plt.ylabel("holdout source acc")
+plt.xlabel("# Samples for label distribution estimation")
+plt.ylabel("Holdout source accuracy")
 plt.savefig(join(_PLOT_SAVE_DIR, "full_acc.png"))
 
 # per source acc
 
 for source in _DATADEF.source_names:
     plt.clf()
-    plt.figure(figsize=(10, 8))
+    plt.figure(figsize=(7, 5))
     # roberta single line, full valid accs
     plt.plot(
         _LABELPROPS_ESTIMATE_NSAMPLES,
@@ -317,7 +318,7 @@ for source in _DATADEF.source_names:
         ],
         marker="D",
         c="teal",
-        label=f"{_ROBERTA_ARCH} full acc",
+        label=f"{stylize_model_arch_for_figures(_ROBERTA_ARCH)} true accuracy",
     )
     # roberta line with +-std region, select valid accs
     means = np.array(
@@ -338,7 +339,7 @@ for source in _DATADEF.source_names:
         c="deepskyblue",
         marker="o",
         linestyle="--",
-        label=f"{_ROBERTA_ARCH} selected acc",
+        label=f"{stylize_model_arch_for_figures(_ROBERTA_ARCH)} estimated accuracy",
     )
     plt.fill_between(
         _LABELPROPS_ESTIMATE_NSAMPLES,
@@ -355,7 +356,7 @@ for source in _DATADEF.source_names:
         ],
         marker="D",
         c="firebrick",
-        label=f"{_LEXICON_ARCH} full acc",
+        label=f"{stylize_model_arch_for_figures(_LEXICON_ARCH)} true accuracy",
     )
     # lexicon line with +-std region, select valid accs
     means = np.array(
@@ -376,7 +377,7 @@ for source in _DATADEF.source_names:
         marker="o",
         linestyle="--",
         c="goldenrod",
-        label=f"{_LEXICON_ARCH} selected acc",
+        label=f"{stylize_model_arch_for_figures(_LEXICON_ARCH)} estimated accuracy",
     )
     plt.fill_between(
         _LABELPROPS_ESTIMATE_NSAMPLES,
@@ -384,10 +385,10 @@ for source in _DATADEF.source_names:
         means + stds,
         color="cornsilk",
     )
-    plt.title(
-        f"holdout source accs under estimated labelprops ({_DATASET_NAME}:{source})"
-    )
+    # plt.title(
+    #     f"holdout source accs under estimated labelprops ({_DATASET_NAME}:{source})"
+    # )
     plt.legend()
-    plt.xlabel("# sample for labelprops est.")
-    plt.ylabel("holdout source acc")
+    plt.xlabel("# Samples for labelprops estimation")
+    plt.ylabel("Holdout source accuracy")
     plt.savefig(join(_PLOT_SAVE_DIR, f"compare_{source}.png"))

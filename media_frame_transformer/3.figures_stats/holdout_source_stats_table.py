@@ -69,7 +69,7 @@ for datasetname in _DATASETS:
         delta = accs - lexicon_base_accs
         rows[arch] = {
             "acc": f"{round(accs.mean(), 3):0.3f}",
-            "delta_std": round(delta.std() / 2, 3),
+            "delta_std": round(delta.std(), 3),
         }
 
     roberta_base_metrics = load_json(
@@ -98,7 +98,7 @@ for datasetname in _DATASETS:
         delta = accs - roberta_base_accs
         rows[arch] = {
             "acc": f"{round(accs.mean(), 3):0.3f}",
-            "delta_std": round(delta.std() / 2, 3),
+            "delta_std": round(delta.std(), 3),
         }
 
     df = pd.DataFrame.from_dict(rows, orient="index")
