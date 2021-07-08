@@ -67,13 +67,13 @@ holdout_source_acc = np.array(
 
 _PLOT_SAVE_PATH = join(_SAVE_DIR, f"{_ROBERTA_ARCH}.png")
 plt.clf()
-plt.figure(figsize=(10, 8))
+plt.figure(figsize=(7, 5))
 plt.plot(
     ROBERTA_ADAPT_N_SAMPLES,
     [holdout_adapt_nsample2acc[nsample] for nsample in ROBERTA_ADAPT_N_SAMPLES],
     marker="D",
     c="teal",
-    label=f"{_ROBERTA_ARCH} adapted from holdout_source",
+    label=f"Fine-tuned from pretrained",
 )
 # for nsample in ROBERTA_ADAPT_N_SAMPLES:
 #     plt.scatter(
@@ -84,18 +84,19 @@ plt.plot(
 #         marker="D",
 #         s=12,
 #     )
+
 plt.axhline(
     holdout_source_acc,
     color="teal",
     linestyle="--",
-    label=f"{_ROBERTA_ARCH} holdout_source",
+    label=f"No fine-tuning",
 )
 plt.plot(
     ROBERTA_ADAPT_N_SAMPLES,
     [from_scratch_nsample2acc[nsample] for nsample in ROBERTA_ADAPT_N_SAMPLES],
     marker="D",
     c="chocolate",
-    label=f"{_ROBERTA_ARCH} adapted from off-the-shelf",
+    label=f"Fine-tuned from off-the-shelf",
 )
 # for nsample in ROBERTA_ADAPT_N_SAMPLES:
 #     plt.scatter(
@@ -106,8 +107,8 @@ plt.plot(
 #         marker="D",
 #         s=12,
 #     )
-plt.title(f"impact of fine-tuning ({_DATASET_NAME})")
+# plt.title(f"impact of fine-tuning ({_DATASET_NAME})")
 plt.legend()
-plt.xlabel("# sample for adaptation")
-plt.ylabel("holdout source acc")
+plt.xlabel("# Samples for adaptation")
+plt.ylabel("Holdout source accuracy")
 plt.savefig(_PLOT_SAVE_PATH)
