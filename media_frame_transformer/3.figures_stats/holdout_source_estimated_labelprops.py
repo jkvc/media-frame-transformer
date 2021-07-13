@@ -10,7 +10,7 @@ from random import Random
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-from config import FIGURES_DIR, LEXICON_DIR, MODELS_DIR, RANDOM_SEED
+from config import FIGURE_DPI, FIGURES_DIR, LEXICON_DIR, MODELS_DIR, RANDOM_SEED
 from media_frame_transformer.datadef.zoo import get_datadef
 from media_frame_transformer.dataset.common import calculate_labelprops
 from media_frame_transformer.dataset.roberta_dataset import RobertaDataset
@@ -24,6 +24,7 @@ from media_frame_transformer.utils import (
     load_json,
     read_txt_as_str_list,
     save_json,
+    save_plt,
     stylize_model_arch_for_figures,
 )
 from torch.utils.data import DataLoader
@@ -54,6 +55,9 @@ _RNG = Random()
 _RNG.seed(RANDOM_SEED)
 
 _LABELPROPS_ESTIMATE_NSAMPLES = [100, 150, 200, 250, 300, 350, 400]
+
+_PLOT_NROW = 3
+_PLOT_NCOL = 2
 
 
 def _2fold(samples):
@@ -302,15 +306,13 @@ plt.axhline(
 plt.legend()
 plt.xlabel("# Samples for label distribution estimation")
 plt.ylabel("Holdout source accuracy")
-plt.savefig(join(_PLOT_SAVE_DIR, "full_acc.png"))
+save_plt(join(_PLOT_SAVE_DIR, "full_acc.png"))
 
 # per source acc
 
-for source in _DATADEF.source_names:
-    plt.clf()
-    plt.figure(figsize=(7, 5))
-    # roberta single line, full valid accs
-    plt.plot(
+
+def plot_single_source(ax, source):
+    ax.plot(
         _LABELPROPS_ESTIMATE_NSAMPLES,
         [
             np.array([roberta_model_perf[str(nsample)][source]["full"]]).mean()
@@ -333,7 +335,7 @@ for source in _DATADEF.source_names:
             for nsample in _LABELPROPS_ESTIMATE_NSAMPLES
         ]
     )
-    plt.plot(
+    ax.plot(
         _LABELPROPS_ESTIMATE_NSAMPLES,
         means,
         c="deepskyblue",
@@ -341,14 +343,14 @@ for source in _DATADEF.source_names:
         linestyle="--",
         label=f"{stylize_model_arch_for_figures(_ROBERTA_ARCH)} estimated accuracy",
     )
-    plt.fill_between(
+    ax.fill_between(
         _LABELPROPS_ESTIMATE_NSAMPLES,
         means - stds,
         means + stds,
         color="azure",
     )
     # lexicon single line, full valid accs
-    plt.plot(
+    ax.plot(
         _LABELPROPS_ESTIMATE_NSAMPLES,
         [
             np.array([lexicon_model_perf[str(nsample)][source]["full"]]).mean()
@@ -371,7 +373,7 @@ for source in _DATADEF.source_names:
             for nsample in _LABELPROPS_ESTIMATE_NSAMPLES
         ]
     )
-    plt.plot(
+    ax.plot(
         _LABELPROPS_ESTIMATE_NSAMPLES,
         means,
         marker="o",
@@ -379,16 +381,34 @@ for source in _DATADEF.source_names:
         c="goldenrod",
         label=f"{stylize_model_arch_for_figures(_LEXICON_ARCH)} estimated accuracy",
     )
-    plt.fill_between(
+    ax.fill_between(
         _LABELPROPS_ESTIMATE_NSAMPLES,
         means - stds,
         means + stds,
         color="cornsilk",
     )
-    # plt.title(
+    # ax.title(
     #     f"holdout source accs under estimated labelprops ({_DATASET_NAME}:{source})"
     # )
-    plt.legend()
-    plt.xlabel("# Samples for labelprops estimation")
-    plt.ylabel("Holdout source accuracy")
-    plt.savefig(join(_PLOT_SAVE_DIR, f"compare_{source}.png"))
+    ax.legend()
+    ax.set_xlabel("# Samples for labelprops estimation")
+    ax.set_ylabel("Holdout source accuracy")
+
+
+# each source single image
+
+for source in _DATADEF.source_names:
+    plt.clf()
+    fig, ax = plt.subplots(figsize=(7, 5))
+    plot_single_source(ax, source)
+    save_plt(join(_PLOT_SAVE_DIR, f"compare_{source}.png"))
+
+# all sources in a grid
+
+plt.clf()
+fig, axes = plt.subplots(nrows=_PLOT_NROW, ncols=_PLOT_NCOL, figsize=(16, 16))
+axes = axes.flatten()
+for ax, source in zip(axes, _DATADEF.source_names):
+    plot_single_source(ax, source)
+    ax.title.set_text(source)
+save_plt(join(_PLOT_SAVE_DIR, "all_compare.png"))

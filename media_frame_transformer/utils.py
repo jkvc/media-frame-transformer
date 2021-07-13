@@ -6,7 +6,9 @@ from os import mkdir
 from os.path import join
 from typing import Iterable, List, Tuple
 
+import matplotlib.pyplot as plt
 import torch
+from config import FIGURE_DPI
 from genericpath import exists
 from tqdm import tqdm
 
@@ -97,3 +99,8 @@ def stylize_model_arch_for_figures(arch: str) -> str:
     name = name.replace("roberta", "RoBERTa")
     name = name.replace("logreg", "Lexicon")
     return name
+
+
+def save_plt(path: str):
+    plt.subplots_adjust(left=0.1, right=0.95, top=0.95, bottom=0.1)
+    plt.savefig(path, dpi=FIGURE_DPI)

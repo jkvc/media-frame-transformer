@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from config import FIGURES_DIR, MODELS_DIR, ROBERTA_ADAPT_N_SAMPLES
 from media_frame_transformer.datadef.zoo import get_datadef
-from media_frame_transformer.utils import load_json
+from media_frame_transformer.utils import load_json, save_plt
 
 _DATASET_NAME = sys.argv[1]
 _ROBERTA_ARCH = sys.argv[2]
@@ -111,4 +111,4 @@ plt.plot(
 plt.legend()
 plt.xlabel("# Samples for adaptation")
 plt.ylabel("Holdout source accuracy")
-plt.savefig(_PLOT_SAVE_PATH)
+save_plt(_PLOT_SAVE_PATH)
