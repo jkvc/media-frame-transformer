@@ -1,6 +1,5 @@
 # Usage: python <script_name>
 
-import sys
 from os import makedirs
 from os.path import basename, join, realpath
 
@@ -9,17 +8,14 @@ import pandas as pd
 import torch
 from config import LEXICON_DIR, MODELS_DIR, OUTPUT_DIR
 from media_frame_transformer.datadef.zoo import get_datadef
-from media_frame_transformer.eval import reduce_and_save_metrics
-from media_frame_transformer.lexicon import eval_lexicon_model, run_lexicon_experiment
-from media_frame_transformer.model.logreg_config.grid_search import (
-    load_logreg_model_config_all_archs,
-)
-from media_frame_transformer.utils import load_json, read_txt_as_str_list, save_json
+from media_frame_transformer.utils import load_json
 
 _DATASETS = ["framing", "arxiv"]
-_METRIC_FILENAME = "mean_test.json"
+_METRIC_FILENAME = "mean_metrics.json"
+# _METRIC_FILENAME = "mean_test.json"
+_EXP_NAME = "train_single"
 
-_SAVE_ROOT = join(OUTPUT_DIR, "holdout_source_stats_table")
+_SAVE_ROOT = join(OUTPUT_DIR, "full_stats_table")
 makedirs(_SAVE_ROOT, exist_ok=True)
 
 # lexicon stats
@@ -40,14 +36,31 @@ _LEXICON_ARCHS = [
     "logreg+sn+lr+gr",
 ]
 _ROBERTA_BASE_ARCH = "roberta"
-_ROBERTA_ARCHS = ["roberta+kb"]
+_ROBERTA_ARCHS = [
+    "roberta+lr",
+    "roberta+kb",
+]
+
+
+def get_valid_accs(metrics):
+    return np.array(
+        [
+            max(
+                metrics[source]["mean"].get("f1", 0),
+                metrics[source]["mean"].get("valid_f1", 0),
+                metrics[source]["mean"].get("valid_f1.best", 0),
+            )
+            for source in _DATADEF.source_names
+        ]
+    )
+
 
 for datasetname in _DATASETS:
     rows = {}
     _DATADEF = get_datadef(datasetname)
 
     lexicon_metrics = load_json(
-        join(LEXICON_DIR, datasetname, "holdout_source", _METRIC_FILENAME)
+        join(LEXICON_DIR, datasetname, _EXP_NAME, _METRIC_FILENAME)
     )
     lexicon_base_accs = np.array(
         [
@@ -76,25 +89,21 @@ for datasetname in _DATASETS:
         join(
             MODELS_DIR,
             datasetname,
-            "holdout_source",
+            _EXP_NAME,
             _ROBERTA_BASE_ARCH,
             _METRIC_FILENAME,
         )
     )
-    roberta_base_accs = np.array(
-        [roberta_base_metrics[source]["mean"]["f1"] for source in _DATADEF.source_names]
-    )
+    roberta_base_accs = get_valid_accs(roberta_base_metrics)
     rows[_ROBERTA_BASE_ARCH] = {
         "acc": round(roberta_base_accs.mean(), 3),
         "delta_std": "-",
     }
     for arch in _ROBERTA_ARCHS:
         metrics = load_json(
-            join(MODELS_DIR, datasetname, "holdout_source", arch, _METRIC_FILENAME)
+            join(MODELS_DIR, datasetname, _EXP_NAME, arch, _METRIC_FILENAME)
         )
-        accs = np.array(
-            [metrics[source]["mean"]["f1"] for source in _DATADEF.source_names]
-        )
+        accs = get_valid_accs(metrics)
         delta = accs - roberta_base_accs
         rows[arch] = {
             "acc": f"{round(accs.mean(), 3):0.3f}",
